@@ -54,7 +54,7 @@ class csa(object):
     >>> zout = csa_interp(xout, yout)
     >>> csa_interp.zin =  np.cos( xin + yin**2 )
     >>> zout = csa_interp
-    >>> print zout
+    >>> print(zout)
 
     '''
 
@@ -68,8 +68,9 @@ class csa(object):
         self.xin = np.asarray(xin)
         self.yin = np.asarray(yin)
 
-        assert xin.size == yin.size, \
-            'xin and yin must have the same number of elements'
+        if xin.size != yin.size:
+            raise ValueError('xin and yin must have the same number '
+                             'of elements')
 
         self._set_zin(zin)
 
@@ -96,18 +97,19 @@ class csa(object):
         zout = None
 
         zout = self._csa.csa_approximatepoints2(
-                     ctypes.c_int(nin),                        #int nin
-                     (ctypes.c_double * nin)(*self.xin.flat),  #double xin[]
-                     (ctypes.c_double * nin)(*self.yin.flat),  #double yin[]
-                     (ctypes.c_double * nin)(*self._zin.flat), #double zin[]
-                     sigma,                                    #double sigma[] or NULL
-                     ctypes.c_int(nout),                       #int nout
-                     (ctypes.c_double * nout)(*xout.flat),     #double xout[]
-                     (ctypes.c_double * nout)(*yout.flat),     #double yout[]
-                     ctypes.c_int(self.npmin),                 #int npmin
-                     ctypes.c_int(self.npmax),                 #int npmax
-                     ctypes.c_int(self.k),                     #int k
-                     ctypes.c_int(self.nppc))                  #int nppc
+             ctypes.c_int(nin),                        #int nin
+             (ctypes.c_double * nin)(*self.xin.flat),  #double xin[]
+             (ctypes.c_double * nin)(*self.yin.flat),  #double yin[]
+             (ctypes.c_double * nin)(*self._zin.flat), #double zin[]
+             sigma,                                    #double sigma[] or NULL
+             ctypes.c_int(nout),                       #int nout
+             (ctypes.c_double * nout)(*xout.flat),     #double xout[]
+             (ctypes.c_double * nout)(*yout.flat),     #double yout[]
+             ctypes.c_int(self.npmin),                 #int npmin
+             ctypes.c_int(self.npmax),                 #int npmax
+             ctypes.c_int(self.k),                     #int k
+             ctypes.c_int(self.nppc)                   #int nppc
+        )
 
         zout = np.asarray([zout[i] for i in range(nout)])
         zout.shape = xout.shape
@@ -121,11 +123,15 @@ class csa(object):
 
     def _set_zin(self, zin):
         zin = np.asarray(zin)
-        assert zin.size == self.xin.size, \
-            'zin must have the same number of elements as xin and yin'
+        if zin.size != self.xin.size:
+            raise ValueError('zin must have the same number of elements as '
+                             'xin and yin')
         self._zin = zin
 
-    zin = property(lambda self: self._zin, _set_zin, doc='Input values to be approximated')
+    zin = property(
+        lambda self: self._zin, _set_zin,
+        doc='Input values to be approximated'
+    )
 
 
 
@@ -137,7 +143,7 @@ if __name__ == '__main__':
     zin = np.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )
     sigma = 0.01 * np.ones_like(xin)
 
-    print ' ### Set up input data points'
+    print(' ### Set up input data points')
 
     xout, yout = np.mgrid[-3:3:100j, -3:3:100j]
 
