@@ -77,7 +77,7 @@ function [h] = viewinterp(fin, fout, verbose)
   end
 
   h = pcolor_ps(x, y, z);
-  caxis([min(min(z)) max(max(z))]);
+  caxis(range(z));
   set(h, 'LineStyle', 'none');
   axis square;
   hold on;

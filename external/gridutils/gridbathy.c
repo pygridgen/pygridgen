@@ -6,7 +6,6 @@
  *
  *  Author:         Pavel Sakov
  *                  CSIRO Marine Research
- *                  NERSC
  *
  *  Purpose:        For a given scattered data calculates (interpolates/
  *                  approximates/averages) values in centres of a specified
@@ -20,9 +19,6 @@
  *
  *  Revisions:      PS 28 Aug 2003: added option "-a 4" to average within
  *                    the grid cells.
- *                  PS 12 Dec 2008: fixed a defect on l. 461: now correctly
- *                    checking isnan(gx[j + 1][i]) instead of the second check
- *                    of gx[j + 1][i + 1].
  *
  *****************************************************************************/
 
@@ -106,13 +102,11 @@ static void info()
     printf("  -v                   -- verbose / version\n");
     printf("  -x                   -- conduct interpolation in index space\n");
     printf("Description:\n");
-    printf(" `gridbathy' interpolates scatterred 2D data into a grid. This is done as\n");
-    printf("  follows. First, for every \"valid\" grid cell (see below for details) the\n");
-    printf("  input data is interpolated to a specified number of regularly distributed\n");
-    printf("  points, using one of the available interpolation methods. Then the points\n");
-    printf("  with invalid values are discarded; the values outside specified range are\n");
-    printf("  replaced by the min/max values; and the final cell value is obtained by\n");
-    printf("  averaging the point values within the cell\n");
+    printf(" `gridbathy' interpolates scatterred 2D data into a grid. It interpolates input\n");
+    printf("  data in a specified number of points within each \"valid\" cell (see below\n");
+    printf("  for details) of the input grid using one of available schemes. After that,\n");
+    printf("  it discards invalid points, replaces the ones that shot outside the allowed\n");
+    printf("  range by the allowed min/max values and averages over the cell.\n");
     printf("Remarks:\n");
     printf("  1. The grid file must contain header describing the node array dimension:\n");
     printf("     ## <nx> x <ny>\n");
@@ -463,7 +457,7 @@ int main(int argc, char* argv[])
                 int count = 0;
                 int ii, jj;
 
-                if ((mask != NULL && mask[j][i] == 0) || isnan(gx[j][i]) || isnan(gx[j + 1][i + 1]) || isnan(gx[j][i + 1]) || isnan(gx[j + 1][i])) {
+                if ((mask != NULL && mask[j][i] == 0) || isnan(gx[j][i]) || isnan(gx[j + 1][i + 1]) || isnan(gx[j][i + 1]) || isnan(gx[j + 1][i + 1])) {
                     printf("NaN\n");
                     continue;
                 }

@@ -16,6 +16,7 @@
  *****************************************************************************/
 
 #include <stdlib.h>
+#include <assert.h>
 #include "broyden.h"
 
 /* Makes one iteration of the Gauss-Newton nonlinear solver with Broyden
@@ -95,6 +96,8 @@ static void F(double* x, double* f, void* p)
     for (i = 0; i < 5; ++i)
         f[i] = -x[i] * (d[i] + c * x[i] * x[i]);
 }
+
+int simple = 1;
 
 int main(int argc, char* argv[])
 {

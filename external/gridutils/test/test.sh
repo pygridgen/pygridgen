@@ -16,15 +16,8 @@ echo ""
 ../getnodes gridpoints_DD.txt -i DD -v > /dev/null
 echo ""
 
-echo "2. Testing conversion between the grid types:"
-echo -n "  Extracting cell corner nodes from a double-density grid..."
+echo -n "2. Extracting cell corner nodes from a double-density grid..."
 ../getnodes gridpoints_DD.txt -i DD -o CO > gridpoints_CO.txt
-echo "done"
-echo -n "  Extracting centre nodes from corner nodes..."
-../getnodes gridpoints_CO.txt -i CO -o CE > gridpoints_CE.txt
-echo "done"
-echo -n "  Recovering corner nodes from centre nodes..."
-../getnodes gridpoints_CE.txt -i CE -o CO > gridpoints_CO2.txt
 echo "done"
 echo ""
 
