@@ -298,7 +298,8 @@ class BoundaryInteractor(object):
             y = bry_dict['y']
             beta = bry_dict['beta']
 
-        assert len(x) >= 4, 'Boundary must have at least four points.'
+        if len(x) < 4:
+            raise ValueError('Boundary must have at least four points.')
 
         if ax is None:
             ax = plt.gca()
@@ -314,12 +315,14 @@ class BoundaryInteractor(object):
             self.gridgen_options[key] = gridgen_options[key]
 
         x = list(x); y = list(y)
-        assert len(x)==len(y), 'arrays must be equal length'
+        if len(x) != len(y):
+            raise ValueError('arrays must be equal length')
 
         if beta is None:
             self.beta = [0 for xi in x]
         else:
-            assert len(x)==len(beta), 'beta must have same length as x and y'
+            if len(x) != len(beta):
+                raise ValueError('beta must have same length as x and y')
             self.beta = list(beta)
 
         self._line = Line2D(x, y, animated=True,
@@ -435,11 +438,15 @@ class _Focus_x(object):
     def __call__(self, x, y):
         x = np.asarray(x)
         y = np.asarray(y)
-        assert not np.any(x>1.0) or not np.any(x<0.0)  \
-            or not np.any(y>1.0) or not np.any(x<0.0), \
-                'x and y must both be within the range [0, 1].'
+
+        if np.any(x > 1.0) or np.any(x < 0.0):
+            raise ValueError('x must be within the range [0, 1]')
+
+        if np.any(y > 1.0) or np.any(y < 0.0):
+                raise ValueError('y must be within the range [0, 1]')
 
         alpha = 1.0 - 1.0/self.factor
+
         def xf(x):
             return x - 0.5*( np.sqrt(np.pi)*self.Rx*alpha
                             *_approximate_erf((x-self.xo)/self.Rx) )
@@ -452,26 +459,26 @@ class _Focus_x(object):
 class _Focus_y(object):
     """Return a transformed, uniform grid, focused in the y-direction
 
-    This class may be called with a uniform grid, with limits from [0, 1], to create a focused
-    grid in the y-directions centered about yo. The output grid is also uniform from [0, 1] in
-    both x and y.
+    This class may be called with a uniform grid, with limits from [0, 1], to
+    create a focused grid in the y-directions centered about yo. The output
+    grid is also uniform from [0, 1] in both x and y.
 
     Parameters
     ----------
     yo : float
         Location about which to focus grid
     factor : float
-        amount to focus grid. Creates cell sizes that are factor smaller in the focused
-        region.
+        amount to focus grid. Creates cell sizes that are factor smaller in
+        he focused region.
     Ry : float
-        Lateral extent of focused region, similar to a lateral spatial scale for the focusing
-        region.
+        Lateral extent of focused region, similar to a lateral spatial scale
+        for the focusing region.
 
     Returns
     -------
     foc : class
-        The class may be called with arguments of a grid. The returned transformed grid (x, y)
-        will be focused as per the parameters above.
+        The class may be called with arguments of a grid. The returned
+        transformed grid (x, y) will be focused as per the parameters above.
 
     """
 
@@ -483,9 +490,12 @@ class _Focus_y(object):
     def __call__(self, x, y):
         x = np.asarray(x)
         y = np.asarray(y)
-        assert not np.any(x>1.0) or not np.any(x<0.0)  \
-            or not np.any(y>1.0) or not np.any(x<0.0), \
-                'x and y must both be within the range [0, 1].'
+
+        if np.any(x > 1.0) or np.any(x < 0.0):
+            raise ValueError('x must be within the range [0, 1]')
+
+        if np.any(y > 1.0) or np.any(y < 0.0):
+                raise ValueError('y must be within the range [0, 1]')
 
         alpha = 1.0 - 1.0/self.factor
 
@@ -532,11 +542,11 @@ class Focus(object):
     >>> x, y = np.mgrid[0:1:3j,0:1:3j]
     >>> xf, yf = foc(x, y)
 
-    >>> print xf
+    >>> print(xf)
     [[ 0.          0.          0.        ]
      [ 0.36594617  0.36594617  0.36594617]
      [ 1.          1.          1.        ]]
-    >>> print yf
+    >>> print(yf)
     [[ 0.          0.62479833  1.        ]
      [ 0.          0.62479833  1.        ]
      [ 0.          0.62479833  1.        ]]
@@ -581,14 +591,14 @@ class CGrid(object):
     >>> x = np.ma.masked_where( (x<3) & (y<3), x)
     >>> y = np.ma.MaskedArray(y, x.mask)
     >>> grd = octant.grid.CGrid(x, y)
-    >>> print grd.x_rho
+    >>> print(grd.x_rho)
     [[-- -- -- 0.5 0.5 0.5 0.5]
      [-- -- -- 1.5 1.5 1.5 1.5]
      [-- -- -- 2.5 2.5 2.5 2.5]
      [3.5 3.5 3.5 3.5 3.5 3.5 3.5]
      [4.5 4.5 4.5 4.5 4.5 4.5 4.5]
      [5.5 5.5 5.5 5.5 5.5 5.5 5.5]]
-    >>> print grd.mask
+    >>> print(grd.mask)
     [[ 0.  0.  0.  1.  1.  1.  1.]
      [ 0.  0.  0.  1.  1.  1.  1.]
      [ 0.  0.  0.  1.  1.  1.  1.]
@@ -600,8 +610,11 @@ class CGrid(object):
 
     def __init__(self, x, y):
 
-        assert np.ndim(x)==2 and np.ndim(y)==2 and np.shape(x)==np.shape(y), \
-            'x and y must be 2D arrays of the same size.'
+        if np.ndim(x) != 2 and np.ndim(y) != 2:
+            raise ValueError('x and y must be two dimensional')
+
+        if np.shape(x) != np.shape(y):
+            raise ValueError('x and y must be the same size.')
 
         if np.any(np.isnan(x)) or np.any(np.isnan(y)):
             x = np.ma.masked_where( (isnan(x)) | (isnan(y)) , x)
@@ -722,12 +735,15 @@ class CGrid(object):
         """
 
         polyverts = np.asarray(polyverts)
-        assert polyverts.ndim == 2, \
-            'polyverts must be a 2D array, or a similar sequence'
-        assert polyverts.shape[1] == 2, \
-            'polyverts must be two columns of points'
-        assert polyverts.shape[0] > 2, \
-            'polyverts must contain at least 3 points'
+        if polyverts.ndim != 2:
+            raise ValueError('polyverts must be a 2D array, or a '
+                             'similar sequence')
+
+        if polyverts.shape[1] != 2:
+            raise ValueError('polyverts must be two columns of points')
+
+        if polyverts.shape[0] < 3:
+            raise ValueError('polyverts must contain at least 3 points')
 
         mask = self.mask_rho
         inside = points_inside_poly(
@@ -874,7 +890,7 @@ class Gridgen(CGrid):
              ctypes.byref(xrect),
              ctypes.byref(yrect) )
 
-        print 'step 3'
+        print('step 3')
 
         # x = self._libgridgen.gridnodes_getx(self._gn)
         # print 'step 4'
@@ -887,7 +903,7 @@ class Gridgen(CGrid):
         # y = np.asarray([y[j][i] for j in range(self.ny) for i in range(self.nx)])
         y.shape = (self.ny, self.nx)
 
-        print 'step 5'
+        print('step 5')
 
         if np.any(np.isnan(x)) or np.any(np.isnan(y)):
             x = np.ma.masked_where(np.isnan(x), x)
@@ -907,8 +923,6 @@ class Gridgen(CGrid):
                  newton=True, thin=True, checksimplepoly=True, verbose=False):
 
         self._libgridgen = np.ctypeslib.load_library('libgridgen.so', '/usr/local/lib')
-        # print octant.__path__[0]
-        # self._libgridgen = np.ctypeslib.load_library('_gridgen', octant.__path__[0])
 
         self._libgridgen.gridgen_generategrid2.restype = ctypes.c_void_p
         self._libgridgen.gridnodes_getx.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
@@ -920,7 +934,9 @@ class Gridgen(CGrid):
         self.xbry = np.asarray(xbry, dtype='d')
         self.ybry = np.asarray(ybry, dtype='d')
         self.beta = np.asarray(beta, dtype='d')
-        assert self.beta.sum() == 4.0, 'sum of beta must be 4.0'
+        if self.beta.sum() != 4.0:
+            raise ValueError('sum of beta must be 4.0')
+
         self.shape = shape
         self.ny = shape[0]
         self.nx = shape[1]
@@ -1019,11 +1035,12 @@ class edit_mask_mesh(object):
             plt.draw()
 
     def __init__(self, xv, yv, mask, **kwargs):
-        assert xv.shape == yv.shape, 'xv and yv must have the same shape'
+        if xv.shape != yv.shape:
+            raise ValueError('xv and yv must have the same shape')
         for dx, dq in zip(xv.shape, mask.shape):
-             assert dx==dq+1, \
-             '''xv and yv must be cell verticies
-             (i.e., one cell bigger in each dimension)'''
+             if dx != dq+1:
+                raise ValueError('xv and yv must be cell verticies '
+                                 '(i.e., one cell bigger in each dimension)')
 
         self.xv = xv
         self.yv = yv
@@ -1068,8 +1085,11 @@ def uvp_masks(rmask):
 
     '''
     rmask = np.asarray(rmask)
-    assert rmask.ndim == 2, 'rmask must be a 2D array'
-    assert np.all((rmask==0)|(rmask==1)), 'rmask array must contain only ones and zeros.'
+    if rmask.ndim != 2:
+        raise ValueError('rmask must be a 2D array')
+
+    if not np.all((rmask == 0) | (rmask ==1 )):
+        raise ValueError('rmask array must contain only ones and zeros.')
 
     umask = rmask[:, :-1] * rmask[:, 1:]
     vmask = rmask[:-1, :] * rmask[1:, :]
@@ -1111,7 +1131,7 @@ if __name__ == '__main__':
 
         grd = Gridgen(x, y, beta, (32, 32), verbose=False)
 
-        print grd.x
+        print(grd.x)
 
         # ax = plt.subplot(111)
         # BoundaryInteractor(x, y, beta)
