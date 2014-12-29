@@ -899,7 +899,6 @@ class Gridgen(CGrid):
         y = np.asarray([y[0][i] for i in range(self.ny * self.nx)])
         y.shape = (self.ny, self.nx)
 
-
         if np.any(np.isnan(x)) or np.any(np.isnan(y)):
             x = np.ma.masked_where(np.isnan(x), x)
             y = np.ma.masked_where(np.isnan(y), y)
