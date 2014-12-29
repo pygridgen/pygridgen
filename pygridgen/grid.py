@@ -890,20 +890,15 @@ class Gridgen(CGrid):
              ctypes.byref(xrect),
              ctypes.byref(yrect) )
 
-        print('step 3')
 
-        # x = self._libgridgen.gridnodes_getx(self._gn)
-        # print 'step 4'
-        # x = np.asarray([x[0][i] for i in range(self.ny*self.nx)])
-        # # x = np.asarray([x[j][i] for j in range(self.ny) for i in range(self.nx)])
-        # x.shape = (self.ny, self.nx)
+        x = self._libgridgen.gridnodes_getx(self._gn)
+        x = np.asarray([x[0][i] for i in range(self.ny * self.nx)])
+        x.shape = (self.ny, self.nx)
 
         y = self._libgridgen.gridnodes_gety(self._gn)
-        y = np.asarray([y[0][i] for i in range(self.ny*self.nx)])
-        # y = np.asarray([y[j][i] for j in range(self.ny) for i in range(self.nx)])
+        y = np.asarray([y[0][i] for i in range(self.ny * self.nx)])
         y.shape = (self.ny, self.nx)
 
-        print('step 5')
 
         if np.any(np.isnan(x)) or np.any(np.isnan(y)):
             x = np.ma.masked_where(np.isnan(x), x)
