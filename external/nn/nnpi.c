@@ -11,19 +11,22 @@
  *                 -- Natural Neighbours Point Interpolator
  *                 -- Natural Neighbours Point Hashing Interpolator
  *
- * Description:    `nnpi' -- "Natural Neighbours Point Interpolator" -- is a
- *                 structure for conducting Natural Neighbours interpolation on
- *                 a "point-to-point" basis. Because it calculates weights for
- *                 each output point, `nnpi' does not take advantage of
- *                 repeated interpolations when locations of input and output
- *                 data points do not change -- use `nnhpi' or `nnai' in these
- *                 cases.
+ * Description:    `nnpi' -- "Natural Neighbours Point
+ *                 Interpolator" -- is a structure for conducting Natural
+ *                 Neighbours interpolation on a given data on a
+ *                 "point-to-point" basis. Because it involves weight
+ *                 calculation for each next output point, it is not
+ *                 particularly suitable for consequitive interpolations on
+ *                 the same set of observation points -- use
+ *                 `nnhpi' or `nnai'
+ *                 in these cases.
  *
- *                 `nnhpi' -- "Natural Neighbours Hashing Point Interpolator"
- *                 is a structure for conducting repeated Natural Neighbours
- *                 interpolations when (i) input data points have constant
- *                 locations and (ii) locations of output data points are often
- *                 repeated.
+ *                 `nnhpi' is a structure for
+ *                 conducting consequitive Natural Neighbours interpolations
+ *                 on a given spatial data set in a random sequence of points
+ *                 from a set of finite size, taking advantage of repeated
+ *                 interpolations in the same point. It allows to modify Z
+ *                 coordinate of data in between interpolations.
  *
  *                 For Sibson NN interpolation this code uses Dave Watson's
  *                 algorithm (Watson, D. F. nngridr: An implementation of
@@ -47,16 +50,6 @@
  *                   such events. Modified _nnpi_calculate_weights() to handle
  *                   the case when instead of being in between two data points
  *                   the interpolation point is close to a data point.
- *                 30/10/2007 PS: Modified treatment of degenerate cases in 
- *                   nnpi_triangle_process(), many thanks to John Gerschwitz,
- *                   Petroleum Geo-Services, for exposing the defect introduced
- *                   in v. 1.69. Changed EPS_SAME from 1.0e-15 to 1.0e-8. Also
- *                   modified nnpi_calculate_weights().
- *                 30/10/2007 PS: Got rid of memset(nn->d->flags, ...) in
- *                   nnpi_reset(). The flags are reset now internally on return
- *                   from delaunay_circles_find(). This is very important
- *                   for large datasets, many thanks to John Gerschwitz,
- *                   Petroleum Geo-Services, for identifying the problem.
  *
  *****************************************************************************/
 
@@ -97,7 +90,7 @@ struct nnpi {
 #define BIGNUMBER 1.0e+100
 #define EPS_WMIN 1.0e-6
 #define HT_SIZE 100
-#define EPS_SAME 1.0e-8
+#define EPS_SAME 1.0e-15
 
 /* Creates Natural Neighbours point interpolator.
  *
@@ -136,6 +129,7 @@ void nnpi_reset(nnpi* nn)
 {
     nn->nvertices = 0;
     nn->ncircles = 0;
+    memset(nn->d->flags, 0, nn->d->ntriangles * sizeof(int));
     if (nn->bad != NULL) {
         ht_destroy(nn->bad);
         nn->bad = NULL;
@@ -215,16 +209,16 @@ static void nnpi_triangle_process(nnpi* nn, point* p, int i)
             point* p1 = &d->points[v1];
             point* p2 = &d->points[v2];
 
-            if ((fabs(p1->x - p->x) + fabs(p1->y - p->y)) / c->r < EPS_SAME) {
-                /*
-                 * if (p1->x == p->x && p1->y == p->y) {
-                 */
+	    if ((fabs(p1->x - p->x) + fabs(p1->y - p->y)) / c->r < EPS_SAME) {
+		/*
+		 * if (p1->x == p->x && p1->y == p->y) {
+		 */
                 nnpi_add_weight(nn, v1, BIGNUMBER);
                 return;
-            } else if ((fabs(p2->x - p->x) + fabs(p2->y - p->y)) / c->r < EPS_SAME) {
-                /*
-                 * } else if (p2->x == p->x && p2->y == p->y) {
-                 */
+	    } else if ((fabs(p2->x - p->x) + fabs(p2->y - p->y)) / c->r < EPS_SAME) {
+		/*
+		 * } else if (p2->x == p->x && p2->y == p->y) {
+		 */
                 nnpi_add_weight(nn, v2, BIGNUMBER);
                 return;
             }
@@ -238,78 +232,65 @@ static void nnpi_triangle_process(nnpi* nn, point* p, int i)
 
         if (isnan(det)) {
             /*
-             * Here, if the determinant is NaN, then the interpolation point
-             * is almost in between two data points. This case is difficult to
-             * handle robustly because the areas (determinants) calculated by
-             * Watson's algorithm are obtained as a diference between two big
-             * numbers. This case is handled here in the following way.
+             * If the determinant is NaN, then the interpolation point lies
+             * almost in between two data points. This case is difficult to
+             * handle robustly because the areas calculated are obtained as a
+             * diference between two big numbers.
              *
-             * If a circle is recognised as very large in circle_build2(), then
-             * its parameters are replaced by NaNs, which results in the
-             * variable `det' above being NaN.
-             * 
-             * When this happens inside convex hall of the data, there is
-             * always a triangle on another side of the edge, processing of
-             * which also produces an invalid circle. Processing of this edge
-             * yields two pairs of infinite determinants, with singularities 
-             * of each pair cancelling if the point moves slightly off the edge.
+             * Here this is handles in the following way. If a circle is
+             * recognised as very large in circle_build2(), then it parameters 
+             * are replaced by NaNs, which results in det above being NaN.
+             * The resulting area to be calculated for a vertex does not
+             * change if the circle center is moved along some line. The closer
+             * it is moved to the actual data point positions, the more
+             * numerically robust the calculation of areas becomes. In
+             * particular, it can be moved to coincide with one of the other
+             * circle centers. When this is done, it is ticked by placing the
+             * edge parameters into the hash table, so that when the
+             * "cancelling" would be about to be done, this new position is
+             * used instead.
              *
-             * Each of the determinants corresponds to the (signed) area of a
-             * triangle, and an inifinite determinant corresponds to the area of
-             * a triangle with one vertex moved to infinity. "Subtracting" one
-             * triangle from another within each pair yields a valid
-             * quadrilateral (in fact, a trapezoid). The doubled area of these
-             * quadrilaterals is calculated in the cycle over ii below.
+             * One complicated circumstance is that sometimes a circle is
+             * recognised as very large in cases when it is actually not, 
+             * when the interpolated point is close to a data point. This is
+             * handled by a special treatment in _nnpi_calculate_weights().
              */
-            int j1bad = isnan(cs[j1].x);
+            int remove = 1;
+            circle* cc = NULL;
             int key[2];
-            double* v = NULL;
 
             key[0] = t->vids[j];
 
             if (nn->bad == NULL)
                 nn->bad = ht_create_i2(HT_SIZE);
 
-            key[1] = (j1bad) ? t->vids[j2] : t->vids[j1];
-            v = ht_find(nn->bad, &key);
+            if (isnan(cs[j1].x)) {
+                key[1] = t->vids[j2];
+                cc = ht_find(nn->bad, &key);
 
-            if (v == NULL) {
-                v = malloc(8 * sizeof(double));
-                if (j1bad) {
-                    v[0] = cs[j2].x;
-                    v[1] = cs[j2].y;
-                } else {
-                    v[0] = cs[j1].x;
-                    v[1] = cs[j1].y;
+                if (cc == NULL) {
+                    remove = 0;
+                    cc = malloc(sizeof(circle));
+                    cc->x = cs[j2].x;
+                    cc->y = cs[j2].y;
+                    assert(ht_insert(nn->bad, &key, cc) == NULL);
                 }
-                v[2] = c->x;
-                v[3] = c->y;
-                (void) ht_insert(nn->bad, &key, v);
-                det = 0.0;
-            } else {
-                int ii;
+                det = ((cc->x - c->x) * (cs[j2].y - c->y) - (cs[j2].x - c->x) * (cc->y - c->y));
+            } else {            /* j2 */
+                key[1] = t->vids[j1];
+                cc = ht_find(nn->bad, &key);
 
-                if (j1bad) {
-                    v[6] = cs[j2].x;
-                    v[7] = cs[j2].y;
-                } else {
-                    v[6] = cs[j1].x;
-                    v[7] = cs[j1].y;
+                if (cc == NULL) {
+                    remove = 0;
+                    cc = malloc(sizeof(circle));
+                    cc->x = cs[j1].x;
+                    cc->y = cs[j1].y;
+                    assert(ht_insert(nn->bad, &key, cc) == NULL);
                 }
-                v[4] = c->x;
-                v[5] = c->y;
-
-                det = 0;
-                for (ii = 0; ii < 4; ++ii) {
-                    int ii1 = (ii + 1) % 4;
-
-                    det += (v[ii * 2] + v[ii1 * 2]) * (v[ii * 2 + 1] - v[ii1 * 2 + 1]);
-                }
-                det = fabs(det);
-
-                free(v);
-                ht_delete(nn->bad, &key);
+                det = ((cs[j1].x - c->x) * (cc->y - c->y) - (cc->x - c->x) * (cs[j1].y - c->y));
             }
+            if (remove)
+                assert(ht_delete(nn->bad, &key) != NULL);
         }
 
         nnpi_add_weight(nn, t->vids[j], det);
@@ -493,11 +474,30 @@ static int _nnpi_calculate_weights(nnpi* nn, point* p)
         for (i = 0; i < nn->ncircles; ++i)
             nnpi_triangle_process(nn, p, tids[i]);
         if (nn->bad != NULL) {
-            int nentries = ht_getnentries(nn->bad);
+            if (ht_getnentries(nn->bad) != 0) {
+                /*
+                 * The idea behind this hack is that if the "infinite circle"
+                 * hash table has not been cleared at the end of the weight
+                 * calculation process for a point, then this is caused by
+		 * misbehavior of some in-circle tests due to the numeric
+		 * round-up in cases when the interpolation point is close to
+		 * one of the data points. The code below effectively replaces
+		 * the interpolated value by the data value in the closest
+		 * point after detecting a non-cleared hash table.
+                 */
+                int vid_closest = -1;
+                double dist_closest = DBL_MAX;
 
-            if (nentries > 0) {
-                ht_process(nn->bad, free);
-                return 0;
+                for (i = 0; i < nn->nvertices; ++i) {
+                    point* pp = &nn->d->points[nn->vertices[i]];
+                    double dist = hypot(p->x - pp->x, p->y - pp->y);
+
+                    if (dist < dist_closest) {
+                        vid_closest = nn->vertices[i];
+                        dist_closest = dist;
+                    }
+                }
+                nnpi_add_weight(nn, vid_closest, BIGNUMBER);
             }
         }
         return 1;
@@ -549,14 +549,15 @@ void nnpi_calculate_weights(nnpi* nn, point* p)
 
     nnpi_reset(nn);
 
-    nn->dx = (nn->d->xmax - nn->d->xmin) * EPS_SHIFT;
-    nn->dy = (nn->d->ymax - nn->d->ymin) * EPS_SHIFT;
-
     pp.x = p->x + nn->dx;
     pp.y = p->y + nn->dy;
 
+    /*
+     * If the triangles are extremely thin, then making a small step in
+     * perpendicular direction may turn out between another pair of data
+     * points. A very rare event. Take care of this.
+     */
     while (!_nnpi_calculate_weights(nn, &pp)) {
-        nnpi_reset(nn);
         pp.x = p->x + nn->dx * RANDOM;
         pp.y = p->y + nn->dy * RANDOM;
     }
@@ -572,19 +573,17 @@ void nnpi_calculate_weights(nnpi* nn, point* p)
 
     nnpi_reset(nn);
 
-    pp.x = 2.0 * p->x - pp.x;
-    pp.y = 2.0 * p->y - pp.y;
+    pp.x = p->x - nn->dx;
+    pp.y = p->y - nn->dy;
 
-    while (!_nnpi_calculate_weights(nn, &pp) || nn->nvertices == 0) {
-        nnpi_reset(nn);
-        pp.x = p->x + nn->dx * RANDOM;
-        pp.y = p->y + nn->dy * RANDOM;
+    while (!_nnpi_calculate_weights(nn, &pp)) {
+        pp.x = p->x - nn->dx * RANDOM;
+        pp.y = p->y - nn->dy * RANDOM;
     }
     nnpi_normalize_weights(nn);
 
-    if (nvertices > 0)
-        for (i = 0; i < nn->nvertices; ++i)
-            nn->weights[i] /= 2.0;
+    for (i = 0; i < nn->nvertices; ++i)
+        nn->weights[i] /= 2.0;
 
     for (i = 0; i < nvertices; ++i)
         nnpi_add_weight(nn, vertices[i], weights[i] / 2.0);

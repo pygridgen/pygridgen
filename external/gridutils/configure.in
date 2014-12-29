@@ -80,14 +80,13 @@ AC_CHECK_PROG(AR, ar, ar, :)
 
 AC_CHECK_HEADERS(math.h, [], AC_MSG_ERROR([unable to find header]))
 
-WITH_GRIDBATHY=yes
-AC_CHECK_HEADERS(nn.h csa.h,, [AC_MSG_WARN([unable to find header nn.h or csa.h; you will not be able to compile gridbathy]); WITH_GRIDBATHY=no], [])
+AC_CHECK_HEADERS(nn.h csa.h, [], AC_MSG_WARN([unable to find header nn.h or csa.h; you will not be able to compile gridbathy]), [])
 
-AC_HAVE_LIBRARY(m,, AC_MSG_ERROR([unable to find library]))
+AC_HAVE_LIBRARY(m, , AC_MSG_ERROR([unable to find library]))
 
-AC_HAVE_LIBRARY(nn,, [AC_MSG_WARN([unable to find library libnn; you will not be able to compile gridbathy]); WITH_GRIDBATHY=no], [])
+AC_HAVE_LIBRARY(nn, , AC_MSG_WARN([unable to find library libnn; you will not be able to compile gridbathy]))
 
-AC_HAVE_LIBRARY(csa,, [AC_MSG_WARN([unable to find library libcsa; you will not be able to compile gridbathy]); WITH_GRIDBATHY=no], [])
+AC_HAVE_LIBRARY(csa, , AC_MSG_WARN([unable to find library libcsa; you will not be able to compile gridbathy]))
 
 dnl Checks for header files.
 AC_HEADER_STDC
@@ -97,5 +96,4 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strcasecmp strerror isnan,,AC_MSG_ERROR([unable to find function]))
 
-AC_SUBST(WITH_GRIDBATHY)
 AC_OUTPUT(makefile)
