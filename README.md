@@ -17,13 +17,17 @@ Generation Package
 
 We are working on packaging using Bento or binstar. When that happens
 it'll be very easy to install. For now, here's a *very* rough outline.
-More details in [INSTALLING](INSTALLING.md)
 
   + cd external/nn; ./configure ; make install
   + cd external/csa; ./configure ; make install
   + cd external/gridutils; ./configure ; make install
   + cd external/gridgen; ./configure ; make shlib
   + cd pygridgen; python setup.py install
+
+More details in More details in the documentation:
+
+ + [Linux](doc/INSTALL_Linux.md)
+ + [Mac OS X](doc/INSTALL_OSX.md)
 
 ## Dependencies:
   + numpy
