@@ -1,0 +1,53 @@
+language: python
+
+env:
+  - PYTHON=2.7
+
+before_install:
+  - sudo apt-get update -yq
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/miniconda/bin:$PATH
+
+install:
+  - conda update conda --yes
+  - conda create --name testenv --yes pip matplotlib numpy python=$PYTHON
+  - conda install -c https://conda.binstar.org/rsignell pyproj --yes
+  - conda update conda --yes
+  - source activate testenv
+  - cd external/nn
+  - ./configure
+  - sudo make install
+  - ../csa
+  - ./configure
+  - sudo make install
+  - cd ../gridutils
+  - sudo make install
+  - cd ../gridgen
+  - sudo make
+  - sudo make lib
+  - sudo make shlib
+  - sudo make install
+  - cd ../..
+  - pip install .
+
+
+before_script:
+  - if [ ${PYTHON:0:1} == "2" ]; then
+    make lint;
+    fi
+  #- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+  #  cd doc;
+  #  make notebooks html;
+  #  cd ..;
+  #  fi
+
+script:
+  - nosetests --with-doctest
+  # Notebook tests are failing on old matplotlib
+  # because the figures have every so slightly a
+  # different size. Skip until I understand why.
+  - if [ ${DEPS} == modern ] && [ ${PYTHON} != 3.4 ]; then
+    python ipnbdoctest.py examples/*.ipynb;
+    fi
