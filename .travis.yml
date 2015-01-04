@@ -12,19 +12,22 @@ before_install:
 
 install:
   - conda update conda --yes
-  - conda create --name testenv --yes pip matplotlib numpy python=$PYTHON
-  - conda install -c https://conda.binstar.org/rsignell pyproj --yes
-  - conda update conda --yes
+  - conda create --name testenv --yes pip matplotlib numpy nose python=$PYTHON
   - source activate testenv
+  - conda install -c https://conda.binstar.org/rsignell pyproj --yes
   - cd external/nn
   - ./configure
+  - sed -i 's/-fno-force-mem//g' makefile
   - sudo make install
-  - ../csa
+  - cd ../csa
   - ./configure
   - sudo make install
   - cd ../gridutils
+  - ./configure
+  - sed -i 's/CFLAGS = -g -O2 -Wall -pedantic/CFLAGS = -g -O2 -Wall -pedantic -fPIC/g' makefile
   - sudo make install
   - cd ../gridgen
+  - ./configure
   - sudo make
   - sudo make lib
   - sudo make shlib
@@ -34,9 +37,9 @@ install:
 
 
 before_script:
-  - if [ ${PYTHON:0:1} == "2" ]; then
-    make lint;
-    fi
+  # - if [ ${PYTHON:0:1} == "2" ]; then
+  #   make lint;
+  #   fi
   #- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
   #  cd doc;
   #  make notebooks html;
@@ -44,10 +47,11 @@ before_script:
   #  fi
 
 script:
-  - nosetests --with-doctest
+  nosetests
+  # - nosetests --with-doctest
   # Notebook tests are failing on old matplotlib
   # because the figures have every so slightly a
   # different size. Skip until I understand why.
-  - if [ ${DEPS} == modern ] && [ ${PYTHON} != 3.4 ]; then
-    python ipnbdoctest.py examples/*.ipynb;
-    fi
+  # - if [ ${DEPS} == modern ] && [ ${PYTHON} != 3.4 ]; then
+  #  python ipnbdoctest.py examples/*.ipynb;
+  #  fi

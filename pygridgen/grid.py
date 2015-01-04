@@ -4,6 +4,7 @@ __docformat__ = "restructuredtext en"
 
 import os
 import sys
+import site
 import ctypes
 import cPickle
 from warnings import warn
