@@ -19,12 +19,9 @@ from matplotlib.mlab import dist_point_to_segment
 from matplotlib.path import Path
 
 try:
-    import pyproj
+    from scipy import special
 except ImportError:
-    try:
-        from mpl_toolkits.basemap import pyproj
-    except ImportError:
-        raise ImportError('pyproj or mpltoolkits-basemap required')
+    special = None
 
 
 def points_inside_poly(points, verts):
@@ -396,33 +393,46 @@ class BoundaryInteractor(object):
 
 
 def _approximate_erf(x):
-    '''Return approximate solution to error function
+    """Approximate solution to error function
 
-    see http://en.wikipedia.org/wiki/Error_function
-    '''
-    a = -(8*(np.pi-3.0)/(3.0*np.pi*(np.pi-4.0)))
-    return np.sign(x) * \
-           np.sqrt(1.0 - np.exp( -x**2*(4.0/np.pi+a*x*x)/(1.0+a*x*x) ))
+    Parameters
+    ----------
+    x : float
+
+    See also
+    --------
+    http://en.wikipedia.org/wiki/Error_function
+    """
+
+    a = -(8 * (np.pi-3.0) / (3.0 * np.pi * (np.pi-4.0)))
+    guts = -x**2 * (4.0/np.pi + a*x*x) / (1.0 + a*x*x)
+    return np.sign(x) * np.sqrt(1.0 - np.exp(guts))
+
+# use the scipy erf implimentation if
+# possible (it's 10x faster)
+if special is None:
+    _error_func = _approximate_erf
+else:
+    _error_func = special.erf
 
 
 class _Focus_x(object):
     """Return a transformed, uniform grid, focused in the x-direction
 
-    This class may be called with a uniform grid, with limits from [0, 1], to
-    create a focused grid in the x-directions centered about xo. The output
-    grid is also uniform from [0, 1] in both x and y.
+    This class may be called with a uniform grid, with limits from
+    [0, 1], to create a focused grid in the x-directions centered about
+    xo. The output grid is also uniform from [0, 1] in both x and y.
 
     Parameters
     ----------
     xo : float
         Location about which to focus grid
     factor : float
-        amount to focus grid. Creates cell sizes that are factor smaller in
-        the focused
-        region.
+        Amount to focus grid. Creates cell sizes that are `factor`
+        smaller (when > 1) or larger (when < 1) in the focused region.
     Rx : float
-        Lateral extent of focused region, similar to a lateral spatial scale
-        for the focusing region.
+        Lateral extent of focused region, similar to a lateral spatial
+        scale for the focusing region.
 
     Returns
     -------
@@ -450,7 +460,7 @@ class _Focus_x(object):
 
         def xf(x):
             return x - 0.5*( np.sqrt(np.pi)*self.Rx*alpha
-                            *_approximate_erf((x-self.xo)/self.Rx) )
+                            *_error_func((x-self.xo)/self.Rx) )
 
         xf0 = xf(0.0); xf1 = xf(1.0)
 
@@ -469,11 +479,11 @@ class _Focus_y(object):
     yo : float
         Location about which to focus grid
     factor : float
-        amount to focus grid. Creates cell sizes that are factor smaller in
-        he focused region.
+        Amount to focus grid. Creates cell sizes that are `factor`
+        smaller (when > 1) or larger (when < 1) in the focused region.
     Ry : float
-        Lateral extent of focused region, similar to a lateral spatial scale
-        for the focusing region.
+        Lateral extent of focused region, similar to a lateral spatial
+        scale for the focusing region.
 
     Returns
     -------
@@ -502,7 +512,7 @@ class _Focus_y(object):
 
         def yf(y):
             return y - 0.5*( np.sqrt(np.pi)*self.Ry*alpha
-                            *_approximate_erf((y-self.yo)/self.Ry) )
+                            *_error_func((y-self.yo)/self.Ry) )
 
         yf0 = yf(0.0); yf1 = yf(1.0)
 
@@ -536,7 +546,7 @@ class Focus(object):
     EXAMPLES
     --------
 
-    >>> foc = octant.grid.Focus()
+    >>> foc = pygridgen.grid.Focus()
     >>> foc.add_focus_x(0.2, factor=3.0, Rx=0.2)
     >>> foc.add_focus_y(0.6, factor=5.0, Ry=0.35)
 
@@ -693,7 +703,7 @@ class CGrid(object):
         self.angle[-1,1:-1] = (1.0/3.0)*(angle_lr[-1,1:-1]+angle_ud[-1,1:]+angle_ud[-1,:-1])
         self.angle[1:-1,0] = (1.0/3.0)*(angle_ud[1:-1,0]+angle_lr[1:,0]+angle_lr[:-1,0])
         self.angle[1:-1,-1] = (1.0/3.0)*(angle_ud[1:-1,-1]+angle_lr[1:,-1]+angle_lr[:-1,-1])
-        #conrers
+        # corners
         self.angle[0,0] = 0.5*(angle_lr[0,0]+angle_ud[0,0])
         self.angle[0,-1] = 0.5*(angle_lr[0,-1]+angle_ud[0,-1])
         self.angle[-1,0] = 0.5*(angle_lr[-1,0]+angle_ud[-1,0])
@@ -812,11 +822,22 @@ class CGrid_geo(CGrid):
 
 
     def __init__(self, lon, lat, proj, use_gcdist=True, ellipse='WGS84'):
+
+        # try to import pyproj directly or from basemap
+        try:
+            import pyproj
+        except ImportError:
+            from mpl_toolkits.basemap import pyproj
+        else:
+            raise ImportError('pyproj or mpltoolkits-basemap required')
+
+        # project the data
         x, y = proj(lon, lat)
         self.lon_vert = lon
         self.lat_vert = lat
         self.proj = proj
 
+        # projection info
         self.use_gcdist = use_gcdist
         self.ellipse = ellipse
 
@@ -829,6 +850,7 @@ class CGrid_geo(CGrid):
         self.lon_psi, self.lat_psi = self.proj(self.x_psi, self.y_psi,
                                                inverse=True)
 
+        # coriolus?
         self.f = 2.0 * 7.29e-5 * np.cos(self.lat_rho * np.pi / 180.0)
 
     def mask_polygon_geo(lonlat_verts, mask_value=0.0):
@@ -841,13 +863,94 @@ class CGrid_geo(CGrid):
 
 
 class Gridgen(CGrid):
-    """docstring for Gridgen"""
+    """Main class for curvilinear-orthogonal grid generation
+
+    Parameters
+    ----------
+    xbry, ybry : array-like
+        One dimensional sequences of the x- and y-coordinates of the
+        grid boundary.
+    beta : array-like
+        Turning values of each coordinate defined by xbry and ybry. The
+        sum of all beta values must equal 4. If you think about this
+        like the right-hand rule of basic physics, positive turning
+        points (+1) face up and work to close the boundary polygon.
+        Negative turning points (-1) open it up (e.g., to define a side
+        channel or other complexity). In between these points, neutral
+        points should be assigned a value of 0.
+    shape : tuple of two ints (ny, nx)
+        The number of cells that would cover the full spatial extent of
+        the grid.
+    ul_idx : optional int (default = 0)
+        The index of the what should be considered the upper left corner
+        of the grid boundary in the `xbry`, `ybry`, and `beta` inputs.
+        This is actually more arbitrary than it sounds. Put it some
+        place convenient for you, and the algorthim will conceptually
+        rotate the boundary to place this point in the upper left
+        corner. Keep that in mind when specifying the shape of the grid.
+    focus : optional pygridgen.Focus instance or None (default)
+        A focus object to tighten or loosen the grid in certain sections.
+    proj : option pyproj projection or None (default)
+        A pyproj projection to be used to convert lat/lon coordinates
+        to a projected (Cartesian) coordinate system (e.g., UTM, state
+        plane).
+    nnodes : optional int (default = 14)
+        The number of nodes used in grid generation. This affects the
+        precision and computation time. A rule of thumb is that this
+        should be equal to or slightly larger than -log10(precision).
+    precision : optional float (default = 1.0e-12)
+        The precision with which the grid is generated. The default
+        value is good for lat/lon coordinate (i.e., smaller magnitudes
+        of boundary coordinates). You can relax this to e.g., 1e-3 when
+        working in state plane or UTM grids and you'll typically get
+        better performance.
+    nppe : optional int (default = 3)
+        The number of points per internal edge. Lower values will
+        coarsen the image.
+    newton : optional bool (default = True)
+        Toggles the use of Gauss-Newton solver with Broyden update to
+        determine the sigma values of the grid domains. If False simple
+        iterations will be used instead.
+    thin : optional bool (default = True)
+        Toggle to True when the (some portion of) the grid is generally
+        narrow in one dimension compared to another.
+    checksimplepoly : optional bool (default = True)
+        Toggles a check to confirm that the boundary inputs form a valid
+        geometry.
+    verbose : optional bool (default = True)
+        Toggles the printing of console statements to track the progress
+        of the grid generation.
+    autogen : optional bool (default = True)
+        Toggles the automatic generation of the grid upon creating the
+        `gridgen` object.
+
+    Example
+    -------
+    >>> import matplotlib.pyplot as plt
+    >>> import pygridgen
+    >>> # define the boundary (pentagon)
+    >>> x = [0, 1, 2, 1, 0]
+    >>> y = [0, 0, 1, 2, 2]
+    >>> beta = [1, 1, 0, 1, 1]
+    >>> # define the focus
+    >>> focus = pygridgen.grid.Focus()
+    >>> focus.add_focus_x(xo=0.5, factor=3, Rx=0.2)
+    >>> focus.add_focus_y(yo=0.75, factor=5, Ry=0.1)
+    >>> # create the grid
+    >>> grid = pygridgen.grid.Gridgen(x, y, beta, shape=(20, 20), focus=focus)
+    >>> # plot the grid
+    >>> fig, ax = plt.subplots()
+    >>> ax.plot(x, y, 'k-')
+    >>> ax.plot(grid.x, grid.y, 'b.')
+
+    """
 
     def generate_grid(self):
 
         if self._gn is not None:
             self._libgridgen.gridnodes_destroy(self._gn)
 
+        # number of boundary points
         nbry = len(self.xbry)
 
         nsigmas = ctypes.c_int(0)
@@ -856,6 +959,7 @@ class Gridgen(CGrid):
         xrect =  ctypes.c_void_p(0)
         yrect = ctypes.c_void_p(0)
 
+        # deal with focus, if present
         if self.focus is None:
             ngrid = ctypes.c_int(0)
             xgrid = ctypes.POINTER(ctypes.c_double)()
@@ -867,6 +971,7 @@ class Gridgen(CGrid):
             xgrid = (ctypes.c_double * xgrid.size)(*xgrid.flatten())
             ygrid = (ctypes.c_double * ygrid.size)(*ygrid.flatten())
 
+        # generate the grid
         self._gn = self._libgridgen.gridgen_generategrid2(
              ctypes.c_int(nbry),
              (ctypes.c_double * nbry)(*self.xbry),
@@ -891,33 +996,46 @@ class Gridgen(CGrid):
              ctypes.byref(xrect),
              ctypes.byref(yrect) )
 
+        # x positions
         x = self._libgridgen.gridnodes_getx(self._gn)
         x = np.asarray([x[0][i] for i in range(self.ny*self.nx)])
         x.shape = (self.ny, self.nx)
 
+        # y positions
         y = self._libgridgen.gridnodes_gety(self._gn)
         y = np.asarray([y[0][i] for i in range(self.ny*self.nx)])
         y.shape = (self.ny, self.nx)
 
+        # mask out invalid values
         if np.any(np.isnan(x)) or np.any(np.isnan(y)):
             x = np.ma.masked_where(np.isnan(x), x)
             y = np.ma.masked_where(np.isnan(y), y)
 
-        # if self.proj is not None:
-        #     lon, lat = self.proj(x, y, inverse=True)
-        #     super(Gridgen, self).__init__(lon, lat, proj=self.proj)
-        # else:
         super(Gridgen, self).__init__(x, y)
 
+    def __init__(self, xbry, ybry, beta, shape, ul_idx=0, focus=None,
+                 proj=None, nnodes=14, precision=1.0e-12, nppe=3,
+                 newton=True, thin=True, checksimplepoly=True,
+                 verbose=False, autogen=True):
 
+        # look for the gridgen-c shared object
+        libgridgen_paths = [
+            ('libgridgen', os.path.join(sys.prefix, 'lib')),
+            ('libgridgen', '/usr/local/lib')
+        ]
 
-    def __init__(self, xbry, ybry, beta, shape, ul_idx=0, \
-                 focus=None, proj=None, \
-                 nnodes=14, precision=1.0e-12, nppe=3, \
-                 newton=True, thin=True, checksimplepoly=True, verbose=False):
+        for name, path in libgridgen_paths:
+            try:
+                self._libgridgen = np.ctypeslib.load_library(name, path)
+                break
+            except OSError:
+                pass
+            else:
+                print("libgridgen: attempted names/locations")
+                print(libgridgen_paths)
+                raise OSError('Failed to load libgridgen.')
 
-        self._libgridgen = np.ctypeslib.load_library('libgridgen.so', '/usr/local/lib')
-
+        # initialized some variables
         self._libgridgen.gridgen_generategrid2.restype = ctypes.c_void_p
         self._libgridgen.gridnodes_getx.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
         self._libgridgen.gridnodes_gety.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
@@ -925,12 +1043,21 @@ class Gridgen(CGrid):
         self._libgridgen.gridnodes_getnce2.restype = ctypes.c_int
         self._libgridgen.gridmap_build.restype = ctypes.c_void_p
 
+        # store the boundary inforation
         self.xbry = np.asarray(xbry, dtype='d')
         self.ybry = np.asarray(ybry, dtype='d')
+
+        # project data as necessary
+        self.proj = proj
+        if self.proj is not None:
+            self.xbry, self.ybry = proj(self.xbry, self.ybry)
+
+        # turning point info and check it
         self.beta = np.asarray(beta, dtype='d')
         if self.beta.sum() != 4.0:
             raise ValueError('sum of beta must be 4.0')
 
+        # basic inputs
         self.shape = shape
         self.ny = shape[0]
         self.nx = shape[1]
@@ -944,12 +1071,12 @@ class Gridgen(CGrid):
         self.checksimplepoly = checksimplepoly
         self.verbose = verbose
 
-        self.proj = proj
-        if self.proj is not None:
-            self.xbry, self.ybry = proj(self.xbry, self.ybry)
-
+        # gridnodes object
         self._gn = None
-        self.generate_grid()
+
+        # generate grid
+        if autogen:
+            self.generate_grid()
 
     def __del__(self):
         """delete gridnode object upon deletion"""
