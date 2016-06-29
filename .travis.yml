@@ -1,38 +1,34 @@
 language: python
 
-env:
-  - PYTHON=2.7
+matrix:
+  include:
+    - python: 2.7
+      env:
+        - COVERAGE=false
+    - python: 3.3
+      env:
+        - COVERAGE=false
+    - python: 3.4
+      env:
+        - COVERAGE=false
+    - python: 3.5
+      env:
+        - COVERAGE=true
 
 before_install:
   - sudo apt-get update -yq
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=/home/travis/miniconda/bin:$PATH
+  - ./miniconda.sh -b -p $HOME/miniconda
+  - export PATH=$HOME/miniconda/bin:$PATH
+  - conda update --yes conda
 
 install:
-  - conda update conda --yes
-  - conda create --name testenv --yes pip matplotlib numpy nose python=$PYTHON
+  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION numpy matplotlib nose pyyaml requests docopt coverage
   - source activate testenv
-  - conda install -c https://conda.binstar.org/rsignell pyproj --yes
-  - cd external/nn
-  - ./configure
-  - sudo make install
-  - cd ../csa
-  - ./configure
-  - sudo make install
-  - cd ../gridutils
-  - ./configure
-  - sed -i 's/CFLAGS = -g -O2 -Wall -pedantic/CFLAGS = -g -O2 -Wall -pedantic -fPIC/g' makefile
-  - sudo make install
-  - cd ../gridgen
-  - ./configure
-  - sudo make
-  - sudo make lib
-  - sudo make shlib
-  - sudo make install
-  - cd ../..
+  - conda install --yes pyproj gridgen --channel=IOOS
   - pip install .
+  - pip install coveralls
 
 
 before_script:
@@ -40,4 +36,7 @@ before_script:
   - ls -al /usr/local/include
 
 script:
-  nosetests
+  - nosetests --with-coverage --cover-package=pygridgen --verbose
+
+after_success:
+  - if [ ${COVERAGE} = true ]; then coveralls; fi

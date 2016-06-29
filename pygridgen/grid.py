@@ -1,546 +1,152 @@
 # encoding: utf-8
-'''Tools for creating curvilinear grids using gridgen by Pavel Sakov'''
+"""Tools for creating curvilinear grids using gridgen by Pavel Sakov"""
+
+
 __docformat__ = "restructuredtext en"
+
 
 import os
 import sys
-import site
 import ctypes
-import cPickle
-from warnings import warn
-from copy import deepcopy
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.artist import Artist
-from matplotlib.patches import Polygon, CirclePolygon
-from matplotlib.lines import Line2D
-from matplotlib.mlab import dist_point_to_segment
 from matplotlib.path import Path
 
-try:
-    import pyproj
-except ImportError:
-    try:
-        from mpl_toolkits.basemap import pyproj
-    except ImportError:
-        raise ImportError('pyproj or mpltoolkits-basemap required')
 
-
-def points_inside_poly(points, verts):
+def _points_inside_poly(points, verts):
     poly = Path(verts)
     return [ind for ind, p in enumerate(points) if poly.contains_point(p)]
 
 
-class BoundaryInteractor(object):
-    """
-    Interactive grid creation
-
-    bry = BoundaryClick(x=[], y=[], beta=None, ax=gca(), **gridgen_options)
-
-    The initial boundary polygon points (x and y) are
-    counterclockwise, starting in the upper left corner of the
-    boundary.
-
-    Key commands:
-
-        t : toggle visibility of verticies
-        d : delete a vertex
-        i : insert a vertex at a point on the polygon line
-
-        P : set vertex as beta=1 (a Positive turn, marked with green triangle)
-        M : set vertex as beta=1 (a Negative turn, marked with red triangle)
-        Z : set vertex as beta=0 (no corner, marked with a black dot)
-        S : set point as upper left index
-
-        G : generate grid from the current boundary using gridgen
-        T : toggle visability of the current grid
-
-    Methods:
-
-        bry.dump(bry_file)
-            Write the current boundary informtion (bry.x, bry.y, bry.beta) to
-            a cPickle file bry_file.
-
-        bry.load(bry_file)
-            Read in boundary informtion (x, y, beta) from the cPickle file
-            bry_file.
-
-        bry.remove_grid()
-            Remove gridlines from axes.
-
-    Attributes:
-        bry.x : the X boundary points
-        bry.y : the Y boundary points
-        bry.verts : the verticies of the grid
-        bry.grd : the CGrid object
-
-    """
-
-    _showverts = True
-    _showbetas = True
-    _showgrid = True
-    _epsilon = 5  # max pixel distance to count as a vertex hit
-
-    def _update_beta_lines(self):
-        """Update m/pline by finding the points where self.beta== -/+ 1"""
-        x, y = zip(*self._poly.xy)
-        num_points = len(x)-1  # the first and last point are repeated
-
-        xp = [x[n] for n in range(num_points) if self.beta[n]==1]
-        yp = [y[n] for n in range(num_points) if self.beta[n]==1]
-        self._pline.set_data(xp, yp)
-
-        xm = [x[n] for n in range(num_points) if self.beta[n]==-1]
-        ym = [y[n] for n in range(num_points) if self.beta[n]==-1]
-        self._mline.set_data(xm, ym)
-
-        xz = [x[n] for n in range(num_points) if self.beta[n]==0]
-        yz = [y[n] for n in range(num_points) if self.beta[n]==0]
-        self._zline.set_data(xz, yz)
-
-        if len(x)-1 < self.gridgen_options['ul_idx']:
-            self.gridgen_options['ul_idx'] = len(x)-1
-        xs = x[self.gridgen_options['ul_idx']]
-        ys = y[self.gridgen_options['ul_idx']]
-        self._sline.set_data(xs, ys)
-
-    def remove_grid(self):
-        """Remove a generated grid from the BoundaryClick figure"""
-        if hasattr(self, '_gridlines'):
-            for line in self._gridlines:
-                self._ax.lines.remove(line)
-            delattr(self, '_gridlines')
-
-    def _draw_callback(self, event):
-        self._background = self._canvas.copy_from_bbox(self._ax.bbox)
-        self._ax.draw_artist(self._poly)
-        self._ax.draw_artist(self._pline)
-        self._ax.draw_artist(self._mline)
-        self._ax.draw_artist(self._zline)
-        self._ax.draw_artist(self._sline)
-        self._ax.draw_artist(self._line)
-        self._canvas.blit(self._ax.bbox)
-
-    def _poly_changed(self, poly):
-        'this method is called whenever the polygon object is called'
-        # only copy the artist props to the line (except visibility)
-        vis = self._line.get_visible()
-        Artist.update_from(self._line, poly)
-        self._line.set_visible(vis)  # don't use the poly visibility state
-
-    def _get_ind_under_point(self, event):
-        'get the index of the vertex under point if within epsilon tolerance'
-        try:
-            x, y = zip(*self._poly.xy)
-
-            # display coords
-            xt, yt = self._poly.get_transform().numerix_x_y(x, y)
-            d = np.sqrt((xt-event.x)**2 + (yt-event.y)**2)
-            indseq = np.nonzero(np.equal(d, np.amin(d)))
-            ind = indseq[0]
-
-            if d[ind]>=self._epsilon:
-                ind = None
-
-            return ind
-        except:
-            # display coords
-            xy = np.asarray(self._poly.xy)
-            xyt = self._poly.get_transform().transform(xy)
-            xt, yt = xyt[:, 0], xyt[:, 1]
-            d = np.sqrt((xt-event.x)**2 + (yt-event.y)**2)
-            indseq = np.nonzero(np.equal(d, np.amin(d)))[0]
-            ind = indseq[0]
-
-            if d[ind]>=self._epsilon:
-                ind = None
-
-            return ind
-
-    def _button_press_callback(self, event):
-        'whenever a mouse button is pressed'
-        # if not self._showverts: return
-        if event.inaxes==None: return
-        if event.button != 1: return
-        self._ind = self._get_ind_under_point(event)
-
-    def _button_release_callback(self, event):
-        'whenever a mouse button is released'
-        # if not self._showverts: return
-        if event.button != 1: return
-        self._ind = None
-
-    def _key_press_callback(self, event):
-        'whenever a key is pressed'
-        if not event.inaxes: return
-        if event.key=='shift': return
-
-        if event.key=='t':
-            self._showbetas = not self._showbetas
-            self._line.set_visible(self._showbetas)
-            self._pline.set_visible(self._showbetas)
-            self._mline.set_visible(self._showbetas)
-            self._zline.set_visible(self._showbetas)
-            self._sline.set_visible(self._showbetas)
-        elif event.key=='d':
-            ind = self._get_ind_under_point(event)
-            if ind is not None:
-                self._poly.xy = [tup for i,tup in enumerate(self._poly.xy) \
-                                 if i!=ind]
-                self._line.set_data(zip(*self._poly.xy))
-                self.beta = [beta for i,beta in enumerate(self.beta) \
-                             if i!=ind]
-        elif event.key=='p':
-            ind = self._get_ind_under_point(event)
-            if ind is not None:
-                self.beta[ind] = 1.0
-        elif event.key=='m':
-            ind = self._get_ind_under_point(event)
-            if ind is not None:
-                self.beta[ind] = -1.0
-        elif event.key=='z':
-            ind = self._get_ind_under_point(event)
-            if ind is not None:
-                self.beta[ind] = 0.0
-        elif event.key=='s':
-            ind = self._get_ind_under_point(event)
-            if ind is not None:
-                self.gridgen_options['ul_idx'] = ind
-        elif event.key=='i':
-            xys = self._poly.get_transform().transform(self._poly.xy)
-            p = event.x, event.y # display coords
-            for i in range(len(xys)-1):
-                s0 = xys[i]
-                s1 = xys[i+1]
-                d = dist_point_to_segment(p, s0, s1)
-                if d<=self._epsilon:
-                    self._poly.xy = np.array(
-                        list(self._poly.xy[:i+1]) +
-                        [(event.xdata, event.ydata)] +
-                        list(self._poly.xy[i+1:]))
-                    self._line.set_data(zip(*self._poly.xy))
-                    self.beta.insert(i+1, 0)
-                    break
-            s0 = xys[-1]
-            s1 = xys[0]
-            d = dist_point_to_segment(p, s0, s1)
-            if d<=self._epsilon:
-                self._poly.xy = np.array(
-                    list(self._poly.xy) +
-                    [(event.xdata, event.ydata)])
-                self._line.set_data(zip(*self._poly.xy))
-                self.beta.append(0)
-        elif event.key=='G' or event.key == '1':
-            options = deepcopy(self.gridgen_options)
-            shp = options.pop('shp')
-            if self.proj is None:
-                x = self.x
-                y = self.y
-                self.grd = Gridgen(x, y, self.beta, shp,
-                                   proj=self.proj, **options)
-            else:
-                lon, lat = self.proj(self.x, self.y, inverse=True)
-                self.grd = Gridgen(lon, lat, self.beta, shp,
-                                   proj=self.proj, **options)
-            self.remove_grid()
-            self._showgrid = True
-            gridlineprops = {'linestyle':'-', 'color':'k', 'lw':0.2}
-            self._gridlines = []
-            for line in self._ax._get_lines(*(self.grd.x, self.grd.y),
-                                            **gridlineprops):
-                self._ax.add_line(line)
-                self._gridlines.append(line)
-            for line in self._ax._get_lines(*(self.grd.x.T, self.grd.y.T),
-                                            **gridlineprops):
-                self._ax.add_line(line)
-                self._gridlines.append(line)
-        elif event.key=='T' or event.key == '2':
-            self._showgrid = not self._showgrid
-            if hasattr(self, '_gridlines'):
-                for line in self._gridlines:
-                    line.set_visible(self._showgrid)
-
-        self._update_beta_lines()
-        self._draw_callback(event)
-        self._canvas.draw()
-
-    def _motion_notify_callback(self, event):
-        'on mouse movement'
-        # if not self._showverts: return
-        if self._ind is None: return
-        if event.inaxes is None: return
-        if event.button != 1: return
-        x,y = event.xdata, event.ydata
-        self._poly.xy[self._ind] = x, y
-        if self._ind == 0:
-            self._poly.xy[-1] = x, y
-
-        x, y = zip(*self._poly.xy)
-        self._line.set_data(x[:-1], y[:-1])
-        self._update_beta_lines()
-
-        self._canvas.restore_region(self._background)
-        self._ax.draw_artist(self._poly)
-        self._ax.draw_artist(self._pline)
-        self._ax.draw_artist(self._mline)
-        self._ax.draw_artist(self._zline)
-        self._ax.draw_artist(self._sline)
-        self._ax.draw_artist(self._line)
-        self._canvas.blit(self._ax.bbox)
-
-
-    def __init__(self, x, y=None, beta=None, ax=None, proj=None,
-                 **gridgen_options):
-
-        if isinstance(x, str):
-            bry_dict = np.load(x)
-            x = bry_dict['x']
-            y = bry_dict['y']
-            beta = bry_dict['beta']
-
-        if len(x) < 4:
-            raise ValueError('Boundary must have at least four points.')
-
-        if ax is None:
-            ax = plt.gca()
-
-        self._ax = ax
-
-        self.proj = proj
-
-        # Set default gridgen option, and copy over specified options.
-        self.gridgen_options = {'ul_idx': 0, 'shp': (32, 32)}
-
-        for key, value in gridgen_options.iteritems():
-            self.gridgen_options[key] = gridgen_options[key]
-
-        x = list(x); y = list(y)
-        if len(x) != len(y):
-            raise ValueError('arrays must be equal length')
-
-        if beta is None:
-            self.beta = [0 for xi in x]
-        else:
-            if len(x) != len(beta):
-                raise ValueError('beta must have same length as x and y')
-            self.beta = list(beta)
-
-        self._line = Line2D(x, y, animated=True,
-                            ls='-', color='k', alpha=0.5, lw=1)
-        self._ax.add_line(self._line)
-
-        self._canvas = self._line.figure.canvas
-
-        self._poly = Polygon(self.verts, alpha=0.1, fc='k', animated=True)
-        self._ax.add_patch(self._poly)
-
-        # Link in the lines that will show the beta values
-        # pline for positive turns, mline for negative (minus) turns
-        # otherwize zline (zero) for straight sections
-        self._pline = Line2D([], [], marker='^', ms=12, mfc='g',\
-                             animated=True, lw=0)
-        self._mline = Line2D([], [], marker='v', ms=12, mfc='r',\
-                             animated=True, lw=0)
-        self._zline = Line2D([], [], marker='o', mfc='k', animated=True, lw=0)
-        self._sline = Line2D([], [], marker='s', mfc='k', animated=True, lw=0)
-
-        self._update_beta_lines()
-        self._ax.add_artist(self._pline)
-        self._ax.add_artist(self._mline)
-        self._ax.add_artist(self._zline)
-        self._ax.add_artist(self._sline)
-
-        # get the canvas and connect the callback events
-        cid = self._poly.add_callback(self._poly_changed)
-        self._ind = None # the active vert
-
-        self._canvas.mpl_connect('draw_event', self._draw_callback)
-        self._canvas.mpl_connect('button_press_event',\
-                                 self._button_press_callback)
-        self._canvas.mpl_connect('key_press_event', self._key_press_callback)
-        self._canvas.mpl_connect('button_release_event',\
-                                 self._button_release_callback)
-        self._canvas.mpl_connect('motion_notify_event',\
-                                 self._motion_notify_callback)
-
-    def save_bry(self, bry_file='bry.pickle'):
-        f = open(bry_file, 'wb')
-        bry_dict = {'x': self.x, 'y': self.y, 'beta': self.beta}
-        cPickle.dump(bry_dict, f, protocol=-1)
-        f.close()
-
-    def load_bry(self, bry_file='bry.pickle'):
-        bry_dict = np.load(bry_file)
-        x = bry_dict['x']
-        y = bry_dict['y']
-        self._line.set_data(x, y)
-        self.beta = bry_dict['beta']
-        if hasattr(self, '_poly'):
-            self._poly.xy = zip(x, y)
-            self._update_beta_lines()
-            self._draw_callback(None)
-            self._canvas.draw()
-
-    def save_grid(self, grid_file='grid.pickle'):
-        f = open(grid_file, 'wb')
-        cPickle.dump(self.grd, f, protocol=-1)
-        f.close()
-
-    def _get_verts(self): return zip(self.x, self.y)
-    verts = property(_get_verts)
-    def get_xdata(self): return self._line.get_xdata()
-    x = property(get_xdata)
-    def get_ydata(self): return self._line.get_ydata()
-    y = property(get_ydata)
-
-
 def _approximate_erf(x):
-    '''Return approximate solution to error function
-
-    see http://en.wikipedia.org/wiki/Error_function
-    '''
-    a = -(8*(np.pi-3.0)/(3.0*np.pi*(np.pi-4.0)))
-    return np.sign(x) * \
-           np.sqrt(1.0 - np.exp( -x**2*(4.0/np.pi+a*x*x)/(1.0+a*x*x) ))
-
-
-class _Focus_x(object):
-    """Return a transformed, uniform grid, focused in the x-direction
-
-    This class may be called with a uniform grid, with limits from [0, 1], to
-    create a focused grid in the x-directions centered about xo. The output
-    grid is also uniform from [0, 1] in both x and y.
+    """
+    Approximate solution to error function.
 
     Parameters
     ----------
-    xo : float
-        Location about which to focus grid
+    x : float
+
+    Returns
+    -------
+    erf : float
+        Value of the error function at ``x``
+
+    References
+    ----------
+    http://en.wikipedia.org/wiki/Error_function
+
+    """
+
+    a = -(8 * (np.pi - 3.0) / (3.0 * np.pi * (np.pi - 4.0)))
+    guts = -1 * (x ** 2) * (4.0 / np.pi + a * x * x) / (1.0 + a * x * x)
+    return np.sign(x) * np.sqrt(1.0 - np.exp(guts))
+
+
+class _FocusPoint(object):
+    """
+    Return a transformed, uniform grid, focused in the x- or
+    y-direction.
+
+    This class may be called with a uniform grid, with limits from
+    [0, 1]. To create a focused grid in the ``axis`` direction centered
+    about ``pos``. The output grid is also uniform from [0, 1] in both
+    x and y.
+
+    Parameters
+    ----------
+    pos : float
+        Relative position within the grid of the focus. This must
+        be in the range [0, 1]
+    axis : string ('x' or 'y')
+        Axis along which the grid will be focused.
     factor : float
-        amount to focus grid. Creates cell sizes that are factor smaller in
-        the focused
+        Amount to focus grid. Creates cell sizes that are factor
+        smaller (factor > 1) or larger (factor < 1) in the focused
         region.
-    Rx : float
-        Lateral extent of focused region, similar to a lateral spatial scale
-        for the focusing region.
+    extent : float
+        Lateral extent of focused region.
+
 
     Returns
     -------
     foc : class
-        The class may be called with arguments of a grid. The returned
-        transformed grid (x, y) will be focused as per the parameters above.
+        The class may be called with vertex/node positions of a grid.
+        The returned transformed grid (x, y) will be focused as per the
+        parameters listed above.
+
     """
 
-    def __init__(self, xo, factor=2.0, Rx=0.1):
-        self.xo = xo
+    def __init__(self, pos, axis, factor, extent):
+        self.pos = pos
+        self.axis = axis.lower()
         self.factor = factor
-        self.Rx = Rx
+        self.extent = extent
+
+        if self.pos > 1.0 or self.pos < 0:
+            raise ValueError('`pos` must be within the range [0, 1]')
+
+        if self.axis not in ['x', 'y']:
+            raise ValueError("`axis` must be 'x' or 'y'")
+
+    def _reposition_point(self, pnt):
+        alpha = 1.0 - 1.0 / self.factor
+        erf = _approximate_erf((pnt - self.pos) / self.extent)
+        return pnt - 0.5 * (np.sqrt(np.pi) * self.extent * alpha * erf)
+
+    def _do_focus(self, array):
+        f0 = self._reposition_point(0.0)
+        f1 = self._reposition_point(1.0)
+        return (self._reposition_point(array) - f0) / (f1 - f0)
 
     def __call__(self, x, y):
         x = np.asarray(x)
         y = np.asarray(y)
-
         if np.any(x > 1.0) or np.any(x < 0.0):
             raise ValueError('x must be within the range [0, 1]')
 
         if np.any(y > 1.0) or np.any(y < 0.0):
                 raise ValueError('y must be within the range [0, 1]')
 
-        alpha = 1.0 - 1.0/self.factor
+        if self.axis == 'y':
+            return x, self._do_focus(y)
 
-        def xf(x):
-            return x - 0.5*( np.sqrt(np.pi)*self.Rx*alpha
-                            *_approximate_erf((x-self.xo)/self.Rx) )
-
-        xf0 = xf(0.0); xf1 = xf(1.0)
-
-        return (xf(x)-xf0)/(xf1-xf0), y
-
-
-class _Focus_y(object):
-    """Return a transformed, uniform grid, focused in the y-direction
-
-    This class may be called with a uniform grid, with limits from [0, 1], to
-    create a focused grid in the y-directions centered about yo. The output
-    grid is also uniform from [0, 1] in both x and y.
-
-    Parameters
-    ----------
-    yo : float
-        Location about which to focus grid
-    factor : float
-        amount to focus grid. Creates cell sizes that are factor smaller in
-        he focused region.
-    Ry : float
-        Lateral extent of focused region, similar to a lateral spatial scale
-        for the focusing region.
-
-    Returns
-    -------
-    foc : class
-        The class may be called with arguments of a grid. The returned
-        transformed grid (x, y) will be focused as per the parameters above.
-
-    """
-
-    def __init__(self, yo, factor=2.0, Ry=0.1):
-        self.yo = yo
-        self.factor = factor
-        self.Ry = Ry
-
-    def __call__(self, x, y):
-        x = np.asarray(x)
-        y = np.asarray(y)
-
-        if np.any(x > 1.0) or np.any(x < 0.0):
-            raise ValueError('x must be within the range [0, 1]')
-
-        if np.any(y > 1.0) or np.any(y < 0.0):
-                raise ValueError('y must be within the range [0, 1]')
-
-        alpha = 1.0 - 1.0/self.factor
-
-        def yf(y):
-            return y - 0.5*( np.sqrt(np.pi)*self.Ry*alpha
-                            *_approximate_erf((y-self.yo)/self.Ry) )
-
-        yf0 = yf(0.0); yf1 = yf(1.0)
-
-        return x, (yf(y)-yf0)/(yf1-yf0)
+        elif self.axis == 'x':
+            return self._do_focus(x), y
 
 
 class Focus(object):
     """
-    Return a container for a sequence of Focus objects
+    Return a container for a sequence of Focus objects.
 
-    foc = Focus()
-
-    The sequence is populated by using the 'add_focus_x' and 'add_focus_y'
-    methods. These methods define a point ('xo' or 'yo'), around witch to
-    focus, a focusing factor of 'focus', and x and y extent of focusing given
-    by Rx or Ry. The region of focusing will be approximately Gausian, and the
-    resolution will be increased by approximately the value of factor.
-
-    Methods
-    -------
-    foc.add_focus_x(xo, factor=2.0, Rx=0.1)
-    foc.add_focus_y(yo, factor=2.0, Ry=0.1)
+    The sequence is populated by using :meth:`~add_focus`, which defines
+    a point (``xo`` or ``yo``), around which the grid is focused by a
+    `factor` for the provided ``extent`` in the along the given
+    ``axis``. The region of focusing will be approximately Gaussian,
+    and the resolution will be increased by approximately the value of
+    ``factor``.
 
     Calls to the object return transformed coordinates:
-        xf, yf = foc(x, y)
-    where x and y must be within [0, 1], and are typically a uniform,
-    normalized grid. The focused grid will be the result of applying each of
-    the focus elements in the sequence they are added to the series.
 
+    .. code-block:: python
 
-    EXAMPLES
+       xf, yf = foc(x, y)
+
+    where `x` and `y` must be within [0, 1], and are typically a
+    uniform, normalized grid. The focused grid will be the result of
+    applying each of the focus elements in the sequence they are added
+    to the series.
+
+    Parameters
+    ----------
+    None
+
+    Examples
     --------
+    >>> foc = pygridgen.Focus()
+    >>> foc.add_focus(0.2, axis='x', factor=3.0, extent=0.20)
+    >>> foc.add_focus(0.6, axis='y', factor=5.0, extent=0.35)
 
-    >>> foc = octant.grid.Focus()
-    >>> foc.add_focus_x(0.2, factor=3.0, Rx=0.2)
-    >>> foc.add_focus_y(0.6, factor=5.0, Ry=0.35)
-
-    >>> x, y = np.mgrid[0:1:3j,0:1:3j]
+    >>> x, y = np.mgrid[0:1:3j, 0:1:3j]
     >>> xf, yf = foc(x, y)
 
     >>> print(xf)
@@ -553,16 +159,34 @@ class Focus(object):
      [ 0.          0.62479833  1.        ]]
 
     """
-    def __init__(self):
-        self._focuspoints = []
 
-    def add_focus_x(self, xo, factor=2.0, Rx=0.1):
-        """docstring for add_point"""
-        self._focuspoints.append(_Focus_x(xo, factor, Rx))
+    def __init__(self, *foci):
+        self._focuspoints = list(foci)
 
-    def add_focus_y(self, yo, factor=2.0, Ry=0.1):
-        """docstring for add_point"""
-        self._focuspoints.append(_Focus_y(yo, factor, Ry))
+    def add_focus(self, pos, axis, factor=2.0, extent=0.1):
+        """
+        Add a single point of focus along an axis.
+
+        This adds a focused location to a grid and can be called multiple
+        times in either the x- or y-direction.
+
+        Parameters
+        ----------
+        pos : float
+            Relative position within the grid of the focus. This must
+            be in the range [0, 1]
+        axis : string ('x' or 'y')
+            Axis along which the grid will be focused.
+        factor : float
+            Amount to focus grid. Creates cell sizes that are factor
+            smaller (factor > 1) or larger (factor < 1) in the focused
+            region.
+        extent : float
+            Lateral extent of focused region.
+
+        """
+
+        self._focuspoints.append(_FocusPoint(pos, axis, factor, extent))
 
     def __call__(self, x, y):
         """docstring for __call__"""
@@ -572,26 +196,35 @@ class Focus(object):
 
 
 class CGrid(object):
-    """Curvilinear Arakawa C-Grid
+    """
+    Curvilinear Arakawa C-Grid.
 
-    The basis for the CGrid class are two arrays defining the verticies of the
-    grid in Cartesian (for geographic coordinates, see CGrid_geo). An optional
-    mask may be defined on the cell centers. Other Arakawa C-grid properties,
-    such as the locations of the cell centers (rho-points), cell edges (u and
-    v velocity points), cell widths (dx and dy) and other metrics (angle,
-    dmde, and dndx) are all calculated internally from the vertex points.
+    The basis for the CGrid class are two arrays defining the verticies
+    of the grid in Cartesian (for geographic coordinates, see
+    :class:`~CGrid_geo`). An optional mask may be defined on the cell
+    centers. Other Arakawa C-grid properties, such as the locations of
+    the cell centers (*rho*-points), cell edges (*u* and *v* velocity
+    points), cell widths (*dx* and *dy*) and other metrics (*angle*,
+    *dmde*, and *dndx*) are all calculated internally from the vertex
+    points.
 
-    Input vertex arrays may be either type np.array or np.ma.MaskedArray. If
-    masked arrays are used, the mask will be a combination of the specified
-    mask (if given) and the masked locations.
+    Input vertex arrays may be either masked or regular numpy arrays.
+    If masked arrays are used, the mask will be a combination of the
+    specified mask (if given) and the masked locations.
 
-    EXAMPLES:
+    Parameters
+    ----------
+    x, y : numpy.ndarray
+        Arrays of the x/y vertex/node positions
+
+    Examples
     --------
-
-    >>> x, y = mgrid[0.0:7.0, 0.0:8.0]
-    >>> x = np.ma.masked_where( (x<3) & (y<3), x)
+    >>> import numpy as np
+    >>> import pygridgen
+    >>> x, y = np.mgrid[0.0:7.0, 0.0:8.0]
+    >>> x = np.ma.masked_where((x < 3) & (y < 3), x)
     >>> y = np.ma.MaskedArray(y, x.mask)
-    >>> grd = octant.grid.CGrid(x, y)
+    >>> grd = pygridgen.grid.CGrid(x, y)
     >>> print(grd.x_rho)
     [[-- -- -- 0.5 0.5 0.5 0.5]
      [-- -- -- 1.5 1.5 1.5 1.5]
@@ -611,6 +244,14 @@ class CGrid(object):
 
     def __init__(self, x, y):
 
+        # grid (verts/nodes)
+        self._x = None
+        self._y = None
+        self._mask = None
+
+        # subgrid masks
+        self._mask_rho = None
+
         if np.ndim(x) != 2 and np.ndim(y) != 2:
             raise ValueError('x and y must be two dimensional')
 
@@ -618,121 +259,318 @@ class CGrid(object):
             raise ValueError('x and y must be the same size.')
 
         if np.any(np.isnan(x)) or np.any(np.isnan(y)):
-            x = np.ma.masked_where( (isnan(x)) | (isnan(y)) , x)
-            y = np.ma.masked_where( (isnan(x)) | (isnan(y)) , y)
+            x = np.ma.masked_where((np.isnan(x)) | (np.isnan(y)), x)
+            y = np.ma.masked_where((np.isnan(x)) | (np.isnan(y)), y)
 
         self.x_vert = x
         self.y_vert = y
 
-        mask_shape = tuple([n-1 for n in self.x_vert.shape])
-        self.mask_rho = np.ones(mask_shape, dtype='d')
+    @property
+    def x(self):
+        """
+        x-coordinate of the grid vertices (a.k.a. nodes)
+        """
+        if self._x is None:
+            self._x = self.x_vert
+        return self._x
 
-        # If maskedarray is given for verticies, modify the mask such that
-        # non-existant grid points are masked.  A cell requires all four
-        # verticies to be defined as a water point.
-        if isinstance(self.x_vert, np.ma.MaskedArray):
-            mask = (self.x_vert.mask[:-1,:-1] | self.x_vert.mask[1:,:-1] | \
-                    self.x_vert.mask[:-1,1:] | self.x_vert.mask[1:,1:])
-            self.mask_rho = np.asarray(~(~np.bool_(self.mask_rho) | mask), dtype='d')
+    @property
+    def y(self):
+        """
+        y-coordinate of the grid vertices (a.k.a. nodes)
+        """
+        if self._y is None:
+            self._y = self.y_vert
+        return self._y
 
-        if isinstance(self.y_vert, np.ma.MaskedArray):
-            mask = (self.y_vert.mask[:-1,:-1] | self.y_vert.mask[1:,:-1] | \
-                    self.y_vert.mask[:-1,1:] | self.y_vert.mask[1:,1:])
-            self.mask_rho = np.asarray(~(~np.bool_(self.mask_rho) | mask), dtype='d')
+    @property
+    def mask(self):
+        """
+        Mask for the cells (same as mask_rho)
+        """
+        return self.mask_rho
 
-        self._calculate_subgrids()
-        self._calculate_metrics()
+    @property
+    def x_rho(self):
+        """
+        x-coordinates of cell centroids
+        """
+        x_rho = 0.25 * (self.x_vert[1:, 1:] + self.x_vert[1:, :-1] +
+                        self.x_vert[:-1, 1:] + self.x_vert[:-1, :-1])
+        return x_rho
 
-    def _calculate_subgrids(self):
-        self.x_rho = 0.25*(self.x_vert[1:,1:]+self.x_vert[1:,:-1]+ \
-                           self.x_vert[:-1,1:]+self.x_vert[:-1,:-1])
-        self.y_rho = 0.25*(self.y_vert[1:,1:]+self.y_vert[1:,:-1]+ \
-                           self.y_vert[:-1,1:]+self.y_vert[:-1,:-1])
-        self.x_u = 0.5*(self.x_vert[:-1,1:-1] + self.x_vert[1:,1:-1])
-        self.y_u = 0.5*(self.y_vert[:-1,1:-1] + self.y_vert[1:,1:-1])
-        self.x_v = 0.5*(self.x_vert[1:-1,:-1] + self.x_vert[1:-1,1:])
-        self.y_v = 0.5*(self.y_vert[1:-1,:-1] + self.y_vert[1:-1,1:])
-        self.x_psi = self.x_vert[1:-1,1:-1]
-        self.y_psi = self.y_vert[1:-1,1:-1]
+    @property
+    def y_rho(self):
+        """
+        y-coordinates of cell centroids
+        """
+        y_rho = 0.25 * (self.y_vert[1:, 1:] + self.y_vert[1:, :-1] +
+                        self.y_vert[:-1, 1:] + self.y_vert[:-1, :-1])
+        return y_rho
 
-    def _calculate_metrics(self):
-        'Calculates pm, pn, dndx, dmde, and angle from x_vert and y_vert'
-        x_temp = 0.5*(self.x_vert[1:,:]+self.x_vert[:-1,:])
-        y_temp = 0.5*(self.y_vert[1:,:]+self.y_vert[:-1,:])
-        self.dx = np.sqrt(np.diff(x_temp, axis=1)**2 + np.diff(y_temp, axis=1)**2)
-        x_temp = 0.5*(self.x_vert[:,1:]+self.x_vert[:,:-1])
-        y_temp = 0.5*(self.y_vert[:,1:]+self.y_vert[:,:-1])
-        self.dy = np.sqrt(np.diff(x_temp, axis=0)**2 + np.diff(y_temp, axis=0)**2)
+    @property
+    def mask_rho(self):
+        """
+        Returns the mask for the cells
+        """
+        if self._mask_rho is None:
+            mask_shape = tuple([n-1 for n in self.x_vert.shape])
+            self._mask_rho = np.ones(mask_shape, dtype='d')
 
+            # If maskedarray is given for vertices, modify the mask such that
+            # non-existant grid points are masked.  A cell requires all four
+            # verticies to be defined as a water point.
+            if isinstance(self.x_vert, np.ma.MaskedArray):
+                mask = (self.x_vert.mask[:-1,:-1] | self.x_vert.mask[1:,:-1] |
+                        self.x_vert.mask[:-1,1:] | self.x_vert.mask[1:,1:])
+                self._mask_rho = np.asarray(
+                    ~(~np.bool_(self.mask_rho) | mask),
+                    dtype='d'
+                )
+
+            if isinstance(self.y_vert, np.ma.MaskedArray):
+                mask = (self.y_vert.mask[:-1,:-1] | self.y_vert.mask[1:,:-1] |
+                        self.y_vert.mask[:-1,1:] | self.y_vert.mask[1:,1:])
+                self._mask_rho = np.asarray(
+                    ~(~np.bool_(self.mask_rho) | mask),
+                    dtype='d'
+                )
+
+        return self._mask_rho
+
+    @mask_rho.setter
+    def mask_rho(self, value):
+        if value.shape == self._mask_rho.shape:
+            self._mask_rho = value
+        else:
+            raise ValueError("shapes are mismatched")
+
+    @property
+    def x_u(self):
+        """
+        x-coordinate of u-point (leading edge in i-direction?)
+        """
+        return 0.5*(self.x_vert[:-1, 1:-1] + self.x_vert[1:, 1:-1])
+
+    @property
+    def y_u(self):
+        """
+        y-coordinate of u-point (leading edge in i-direction?)
+        """
+        return 0.5*(self.y_vert[:-1, 1:-1] + self.y_vert[1:, 1:-1])
+
+    @property
+    def mask_u(self):
+        """
+        Mask for the u-points
+        """
+        return self.mask_rho[:,1:] * self.mask_rho[:,:-1]
+
+    @property
+    def x_v(self):
+        """
+        x-coordinate of y-point (leading edge in j-direction?)
+        """
+        return 0.5*(self.x_vert[1:-1, :-1] + self.x_vert[1:-1, 1:])
+
+    @property
+    def y_v(self):
+        """
+        y-coordinate of y-point (leading edge in j-direction?)
+        """
+        return 0.5*(self.y_vert[1:-1, :-1] + self.y_vert[1:-1, 1:])
+
+    @property
+    def mask_v(self):
+        """
+        mask for the v-points
+        """
+        return self.mask_rho[1:, :]*self.mask_rho[:-1, :]
+
+    @property
+    def x_psi(self):
+        """
+        x-coordinate of the anchor node for each cell? (upper left?)
+        """
+        return self.x_vert[1:-1, 1:-1]
+
+    @property
+    def y_psi(self):
+        """
+        y-coordinate of the anchor node for each cell? (upper left?)
+        """
+        return self.y_vert[1:-1, 1:-1]
+
+    @property
+    def mask_psi(self):
+        """
+        mask for the psi-points
+        """
+        mask_psi = (self.mask_rho[1:, 1:] * self.mask_rho[:-1, 1:] *
+                    self.mask_rho[1:, :-1] * self.mask_rho[:-1, :-1])
+        return mask_psi
+
+    @property
+    def dx(self):
+        """
+        dimension of cell in x-direction?
+        """
+        x_temp = 0.5*(self.x_vert[1:, :]+self.x_vert[:-1, :])
+        y_temp = 0.5*(self.y_vert[1:, :]+self.y_vert[:-1, :])
+        dx = np.sqrt(np.diff(x_temp, axis=1)**2 + np.diff(y_temp, axis=1)**2)
+        return dx
+
+    @property
+    def pm(self):
+        return 1.0 / self.dx
+
+    @property
+    def dy(self):
+        """
+        dimension of cell in y-direction?
+        """
+        x_temp = 0.5*(self.x_vert[:, 1:]+self.x_vert[:, :-1])
+        y_temp = 0.5*(self.y_vert[:, 1:]+self.y_vert[:, :-1])
+        dy = np.sqrt(np.diff(x_temp, axis=0)**2 + np.diff(y_temp, axis=0)**2)
+        return dy
+
+    @property
+    def pn(self):
+        return 1.0 / self.dy
+
+    @property
+    def dndx(self):
         if isinstance(self.dy, np.ma.MaskedArray):
-            self.dndx = np.ma.zeros(self.x_rho.shape, dtype='d')
+            dndx = np.ma.zeros(self.x_rho.shape, dtype='d')
         else:
-            self.dndx = np.zeros(self.x_rho.shape, dtype='d')
+            dndx = np.zeros(self.x_rho.shape, dtype='d')
 
+        dndx[1:-1, 1:-1] = 0.5*(self.dy[1:-1, 2:] - self.dy[1:-1, :-2])
+        return dndx
+
+    @property
+    def dmde(self):
         if isinstance(self.dx, np.ma.MaskedArray):
-            self.dmde = np.ma.zeros(self.x_rho.shape, dtype='d')
+            dmde = np.ma.zeros(self.x_rho.shape, dtype='d')
         else:
-            self.dmde = np.zeros(self.x_rho.shape, dtype='d')
+            dmde = np.zeros(self.x_rho.shape, dtype='d')
 
-        self.dndx[1:-1,1:-1] = 0.5*(self.dy[1:-1,2:] - self.dy[1:-1,:-2])
-        self.dmde[1:-1,1:-1] = 0.5*(self.dx[2:,1:-1] - self.dx[:-2,1:-1])
+        dmde[1:-1, 1:-1] = 0.5*(self.dx[2:, 1:-1] - self.dx[:-2,1 :-1])
+        return dmde
 
+    @property
+    def angle(self):
         if isinstance(self.x_vert, np.ma.MaskedArray) or \
            isinstance(self.y_vert, np.ma.MaskedArray):
-            self.angle = np.ma.zeros(self.x_vert.shape, dtype='d')
+            angle = np.ma.zeros(self.x_vert.shape, dtype='d')
         else:
-            self.angle = np.zeros(self.x_vert.shape, dtype='d')
+            angle = np.zeros(self.x_vert.shape, dtype='d')
 
-        angle_ud = np.arctan2(np.diff(self.y_vert, axis=1), np.diff(self.x_vert, axis=1))
-        angle_lr = np.arctan2(np.diff(self.y_vert, axis=0), np.diff(self.x_vert, axis=0)) - np.pi/2.0
+        angle_ud = np.arctan2(np.diff(self.y_vert, axis=1),
+                              np.diff(self.x_vert, axis=1))
+        angle_lr = np.arctan2(np.diff(self.y_vert, axis=0),
+                              np.diff(self.x_vert, axis=0)) - (np.pi / 2.0)
+
         # domain center
-        self.angle[1:-1,1:-1] = 0.25*(angle_ud[1:-1,1:]+angle_ud[1:-1,:-1]\
-                                     +angle_lr[1:,1:-1]+angle_lr[:-1,1:-1])
+        angle[1:-1, 1:-1] = 0.25 * (
+            angle_ud[1:-1, 1:] + angle_ud[1:-1, :-1] +
+            angle_lr[1:, 1:-1] + angle_lr[:-1, 1:-1])
+
         # edges
-        self.angle[0,1:-1] = (1.0/3.0)*(angle_lr[0,1:-1]+angle_ud[0,1:]+angle_ud[0,:-1])
-        self.angle[-1,1:-1] = (1.0/3.0)*(angle_lr[-1,1:-1]+angle_ud[-1,1:]+angle_ud[-1,:-1])
-        self.angle[1:-1,0] = (1.0/3.0)*(angle_ud[1:-1,0]+angle_lr[1:,0]+angle_lr[:-1,0])
-        self.angle[1:-1,-1] = (1.0/3.0)*(angle_ud[1:-1,-1]+angle_lr[1:,-1]+angle_lr[:-1,-1])
-        #conrers
-        self.angle[0,0] = 0.5*(angle_lr[0,0]+angle_ud[0,0])
-        self.angle[0,-1] = 0.5*(angle_lr[0,-1]+angle_ud[0,-1])
-        self.angle[-1,0] = 0.5*(angle_lr[-1,0]+angle_ud[-1,0])
-        self.angle[-1,-1] = 0.5*(angle_lr[-1,-1]+angle_ud[-1,-1])
+        angle[0, 1:-1] = (1.0 / 3.0) * (
+            angle_lr[0, 1:-1] + angle_ud[0, 1:] + angle_ud[0, :-1]
+        )
+        angle[-1, 1:-1] = (1.0 / 3.0) * (
+            angle_lr[-1, 1:-1] + angle_ud[-1, 1:] + angle_ud[-1, :-1]
+        )
 
-        self.angle_rho = np.arctan2(np.diff(0.5*(self.y_vert[1:,:]+self.y_vert[:-1,:])), \
-                                    np.diff(0.5*(self.x_vert[1:,:]+self.x_vert[:-1,:])))
+        angle[1:-1, 0] = (1.0 / 3.0) * (
+            angle_ud[1:-1, 0] + angle_lr[1:, 0] + angle_lr[:-1, 0]
+        )
 
-    def calculate_orthogonality(self):
-        '''
+        angle[1:-1, -1] = (1.0 / 3.0) * (
+            angle_ud[1:-1, -1] + angle_lr[1:, -1] + angle_lr[:-1, -1]
+        )
+
+        #corners
+        angle[0, 0] = 0.5 * (angle_lr[0, 0] + angle_ud[0, 0])
+        angle[0, -1] = 0.5 * (angle_lr[0, -1] + angle_ud[0, -1])
+        angle[-1, 0] = 0.5 * (angle_lr[-1, 0] + angle_ud[-1, 0])
+        angle[-1, -1] = 0.5 * (angle_lr[-1, -1] + angle_ud[-1, -1])
+
+        return angle
+
+    @property
+    def angle_rho(self):
+        angle_rho = np.arctan2(
+            np.diff(0.5 * (self.y_vert[1:, :] + self.y_vert[:-1, :])),
+            np.diff(0.5 * (self.x_vert[1:, :] + self.x_vert[:-1, :]))
+        )
+
+        return angle_rho
+
+    @property
+    def orthogonality(self):
+        """
         Calculate orthogonality error in radians
-        '''
+        """
         z = self.x_vert + 1j*self.y_vert
-        du = np.diff(z, axis=1); du = (du/abs(du))[:-1,:]
-        dv = np.diff(z, axis=0); dv = (dv/abs(dv))[:,:-1]
+
+        du = np.diff(z, axis=1)
+        du = (du / abs(du))[:-1 ,:]
+        dv = np.diff(z, axis=0)
+        dv = (dv / abs(dv))[:, :-1]
         ang1 = np.arccos(du.real*dv.real + du.imag*dv.imag)
-        du = np.diff(z, axis=1); du = (du/abs(du))[1:,:]
-        dv = np.diff(z, axis=0); dv = (dv/abs(dv))[:,:-1]
+
+        du = np.diff(z, axis=1)
+        du = (du / abs(du))[1:, :]
+        dv = np.diff(z, axis=0)
+        dv = (dv / abs(dv))[:, :-1]
         ang2 = np.arccos(du.real*dv.real + du.imag*dv.imag)
-        du = np.diff(z, axis=1); du = (du/abs(du))[:-1,:]
-        dv = np.diff(z, axis=0); dv = (dv/abs(dv))[:,1:]
+
+        du = np.diff(z, axis=1)
+        du = (du / abs(du))[:-1, :]
+        dv = np.diff(z, axis=0)
+        dv = (dv / abs(dv))[:, 1:]
         ang3 = np.arccos(du.real*dv.real + du.imag*dv.imag)
-        du = np.diff(z, axis=1); du = (du/abs(du))[1:,:]
-        dv = np.diff(z, axis=0); dv = (dv/abs(dv))[:,1:]
+
+        du = np.diff(z, axis=1)
+        du = (du / abs(du))[1:, :]
+        dv = np.diff(z, axis=0)
+        dv = (dv / abs(dv))[:, 1:]
         ang4 = np.arccos(du.real*dv.real + du.imag*dv.imag)
+
         ang = np.mean([abs(ang1), abs(ang2), abs(ang3), abs(ang4)], axis=0)
-        ang = (ang-np.pi/2.0)
+        ang = (ang - np.pi/2.0)
         return ang
 
-    def mask_polygon(self, polyverts, mask_value=0.0):
+    def calculate_orthogonality(self):
         """
-        Mask Cartesian points contained within the polygon defined by polyverts
+        Should deprecate in favor of property ``orthogonality``
+        """
+        return self.orthogonality
 
-        A cell is masked if the cell center (x_rho, y_rho) is within the
-        polygon. Other sub-masks (mask_u, mask_v, and mask_psi) are updated
-        automatically.
+    def mask_polygon(self, polyverts, mask_value=False):
+        """
+        Mask Cartesian points contained within the polygon defined by
+        ``polyverts``.
 
-        mask_value [=0.0] may be specified to alter the value of the mask set
-        within the polygon.  E.g., mask_value=1 for water points.
+        A cell is masked if the cell center (`x_rho`, `y_rho`) is within
+        the polygon. Other sub-masks (`mask_u`, `mask_v`, and `mask_psi`)
+        are updated automatically.
+
+        A `mask_value=False` may be specified to alter the value of the
+        mask set within the polygon (e.g., `mask_value=True` for water
+        points)
+
+        Parameters
+        ----------
+        polyverts : sequence of 2-tuples or numpy array (N, x)
+            The x/y coordinates of the polygon used to mask the grid.
+        mask_value : bool, optional (default = False)
+            The value of the mask to be set for cells whose centroids
+            are inside the polygon.
+
         """
 
         polyverts = np.asarray(polyverts)
@@ -746,79 +584,59 @@ class CGrid(object):
         if polyverts.shape[0] < 3:
             raise ValueError('polyverts must contain at least 3 points')
 
-        mask = self.mask_rho
-        inside = points_inside_poly(
-            np.vstack([self.x_rho.flat, self.y_rho.flat]).T,
+        mask = self.mask_rho.copy()
+        inside = _points_inside_poly(
+            np.vstack([self.x_rho.flatten(), self.y_rho.flatten()]).T,
             polyverts
         )
         if np.any(inside):
-            self.mask_rho.flat[inside] = mask_value
+            mask.flat[inside] = mask_value
 
-    def _get_mask_u(self):
-        return self.mask_rho[:,1:]*self.mask_rho[:,:-1]
-
-    def _get_mask_v(self):
-        return self.mask_rho[1:,:]*self.mask_rho[:-1,:]
-
-    def _get_mask_psi(self):
-        return self.mask_rho[1:,1:]*self.mask_rho[:-1,1:]* \
-               self.mask_rho[1:,:-1]*self.mask_rho[:-1,:-1]
-
-    def _set_mask_rho(self, mask_rho):
-        self.mask_rho = mask_rho
-
-    x = property(lambda self: self.x_vert, None, None, 'Return x_vert')
-    y = property(lambda self: self.y_vert, None, None, 'Return x_vert')
-    mask = property(lambda self: self.mask_rho, _set_mask_rho, None, 'Return mask_rho')
-    mask_u   = property(_get_mask_u, None, None, 'Return mask_u')
-    mask_v   = property(_get_mask_v, None, None, 'Return mask_v')
-    mask_psi = property(_get_mask_psi, None, None, 'Return mask_psi')
+        self.mask_rho = mask
 
 
 class CGrid_geo(CGrid):
-    """Curvilinear Arakawa C-grid defined in geographic coordinates
-
-    For a geographic grid, a projection may be specified, or The default
-    projection for will be defined by the matplotlib.toolkits.Basemap
-    projection:
-
-    proj = Basemap(projection='merc', resolution=None, lat_ts=0.0)
+    """Curvilinear Arakawa C-grid defined in geographic coordinates.
 
     For a geographic grid, the cell widths are determined by the great
     circle distances. Angles, however, are defined using the projected
-    coordinates, so a projection that conserves angles must be used. This
-    means typically either Mercator (projection='merc') or Lambert
+    coordinates, so a projection that conserves angles must be used.
+    This means typically either Mercator (projection='merc') or Lambert
     Conformal Conic (projection='lcc').
 
+    Parameters
+    ----------
+    lon, lat : numpy.ndarrays
+        Array of grid vertex/node positions in decimal degrees (i.e.,
+        longitude and latitude).
+    proj : pyproj.Proj
+        A projection object that can translate ``lon`` and ``lat`` into
+        Cartesian coordinates.
+    use_gcdist : bool, optional (default = True)
+        Toggles the use of great circle distances when computing cell
+        dimensions.
+    ellipse : str, optional (default = 'WGS84')
+        The ellipsoid reference for ``lon`` and ``lat``,
 
     """
-    def _calculate_metrics(self):
-
-        # calculate metrics based on x and y grid
-        super(CGrid_geo, self)._calculate_metrics()
-
-        # optionally calculate dx and dy based on great circle distances
-        # for more accurate cell sizes.
-        if self.use_gcdist:
-            geod = pyproj.Geod(ellps=self.ellipse)
-            az1, az2, dx = geod.inv(self.lon[:,1:],  self.lat[:,1:], \
-                                    self.lon[:,:-1], self.lat[:,:-1])
-            self.dx = 0.5*(dx[1:,:]+dx[:-1,:])
-            self.pm = 1.0/self.dx
-            az1, ax2, dy = geod.inv(self.lon[1:,:],  self.lat[1:,:], \
-                                   self.lon[:-1,:], self.lat[:-1,:])
-            self.dy = 0.5*(dy[:,1:]+dy[:,:-1])
-            self.pn = 1.0/self.dy
-
 
     def __init__(self, lon, lat, proj, use_gcdist=True, ellipse='WGS84'):
+        try:
+            import pyproj
+        except ImportError:
+            from mpl_toolkits.basemap import pyproj
+        else:
+            raise ImportError('pyproj or mpltoolkits-basemap required')
+
         x, y = proj(lon, lat)
         self.lon_vert = lon
         self.lat_vert = lat
-        self.proj = proj
 
+        # projection information
         self.use_gcdist = use_gcdist
         self.ellipse = ellipse
+        self.proj = proj
+        self.geod = pyproj.Geod(ellps=self.ellipse)
 
         super(CGrid_geo, self).__init__(x, y)
 
@@ -829,33 +647,287 @@ class CGrid_geo(CGrid):
         self.lon_psi, self.lat_psi = self.proj(self.x_psi, self.y_psi,
                                                inverse=True)
 
+        # coriolis frequency
         self.f = 2.0 * 7.29e-5 * np.cos(self.lat_rho * np.pi / 180.0)
+
+    @property
+    def dx(self):
+        if self.use_gcdist:
+            az1, az2, dx = self.geod.inv(self.lon[:,1:], self.lat[:,1:],
+                                         self.lon[:,:-1], self.lat[:,:-1])
+            return 0.5 * (dx[1:,:] + dx[:-1,:])
+        else:
+            x_temp = 0.5*(self.x_vert[1:, :]+self.x_vert[:-1, :])
+            y_temp = 0.5*(self.y_vert[1:, :]+self.y_vert[:-1, :])
+            dx = np.sqrt(np.diff(x_temp, axis=1)**2 + np.diff(y_temp, axis=1)**2)
+            return dx
+
+    @property
+    def dy(self):
+        if self.use_gcdist:
+            az1, ax2, dy = self.geod.inv(self.lon[1:,:], self.lat[1:,:],
+                                         self.lon[:-1,:], self.lat[:-1,:])
+            return 0.5 * (dy[:,1:] + dy[:,:-1])
+        else:
+            x_temp = 0.5*(self.x_vert[:, 1:]+self.x_vert[:, :-1])
+            y_temp = 0.5*(self.y_vert[:, 1:]+self.y_vert[:, :-1])
+            dy = np.sqrt(np.diff(x_temp, axis=0)**2 + np.diff(y_temp, axis=0)**2)
+            return dy
+
+    @property
+    def lon(self):
+        """Shorthand for lon_vert"""
+        return self.lon_vert
+
+    @property
+    def lat(self):
+        """Shorthand for lat_vert"""
+        return self.lat_vert
 
     def mask_polygon_geo(lonlat_verts, mask_value=0.0):
         lon, lat = zip(*lonlat_verts)
         x, y = proj(lon, lat, inverse=True)
         self.mask_polygon(zip(x, y), mask_value)
 
-    lon = property(lambda self: self.lon_vert, None, None, 'Shorthand for lon_vert')
-    lat = property(lambda self: self.lat_vert, None, None, 'Shorthand for lat_vert')
-
 
 class Gridgen(CGrid):
-    """docstring for Gridgen"""
+    """
+    Main class for curvilinear-orthogonal grid generation.
+
+    Parameters
+    ----------
+    xbry, ybry : array-like
+        One dimensional sequences of the x- and y-coordinates of the
+        grid boundary.
+    beta : array-like
+        Turning values of each coordinate defined by ``xbry`` and
+        ``ybry``. The sum of all beta values must equal 4. If you think
+        about this like the right-hand rule of basic physics, positive
+        turning points (+1) face up and work to close the boundary
+        polygon. Negative turning points (-1) open it up (e.g., to
+        define a side channel or other complexity). In between these
+        points, neutral points should be assigned a value of 0.
+    shape : two-tuple of ints (ny, nx)
+        The number of cells that would cover the full spatial extent of
+        the grid in standard C-order (i.e., rows, then columns).
+    ul_idx : optional int (default = 0)
+        The index of the what should be considered the upper left corner
+        of the grid boundary in the ``xbry``, ``ybry``, and `beta`
+        inputs. This is actually more arbitrary than it sounds. Put it
+        some place convenient for you, and the algorithm will
+        conceptually rotate the boundary to place this point in the
+        upper left corner. Keep that in mind when specifying the shape
+        of the grid.
+    focus : :class:`~Focus`, optional
+        A focus object to tighten/loosen the grid in certain sections.
+    proj : pyproj.Proj, optional
+        A pyproj projection to be used to convert lat/lon coordinates
+        to a projected (Cartesian) coordinate system (e.g., UTM, state
+        plane).
+    nnodes : int, optional (default = 14)
+        The number of nodes used in grid generation. This affects the
+        precision and computation time. A rule of thumb is that this
+        should be equal to or slightly larger than `-log10(precision)`.
+    precision : float, optional (default = 1.0e-12)
+        The precision with which the grid is generated. The default
+        value is good for lat/lon coordinate (i.e., smaller magnitudes
+        of boundary coordinates). You can relax this to e.g., 1e-3 when
+        working in state plane or UTM grids and you'll typically get
+        better performance.
+    nppe : int, optional (default = 3)
+        The number of points per internal edge. Lower values will
+        coarsen the image.
+    newton : bool, optional (default = True)
+        Toggles the use of Gauss-Newton solver with Broyden update to
+        determine the sigma values of the grid domains. If False simple
+        iterations will be used instead.
+    thin : bool, optional (default = True)
+        Toggle to True when the (some portion of) the grid is generally
+        narrow in one dimension compared to another.
+    checksimplepoly : bool, optional (default = True)
+        Toggles a check to confirm that the boundary inputs form a valid
+        geometry.
+    verbose : bool, optional (default = True)
+        Toggles the printing of console statements to track the progress
+        of the grid generation.
+    autogen : bool, optional (default = True)
+        Toggles the automatic generation of the grid. Set to False if
+        you want to delay calling the ``generate_grid`` method.
+
+    Example
+    -------
+
+    >>> import matplotlib.pyplot as plt
+    >>> import pygridgen
+    >>> # define the boundary (pentagon)
+    >>> x = [0, 1, 2, 1, 0]
+    >>> y = [0, 0, 1, 2, 2]
+    >>> beta = [1, 1, 0, 1, 1]
+    >>> # define the focus
+    >>> focus = pygridgen.grid.Focus()
+    >>> focus.add_focus_x(xo=0.5, factor=3, Rx=0.2)
+    >>> focus.add_focus_y(yo=0.75, factor=5, Ry=0.1)
+    >>> # create the grid
+    >>> grid = pygridgen.Gridgen(x, y, beta, shape=(20, 20), focus=focus)
+    >>> # plot the grid
+    >>> fig, ax = plt.subplots()
+    >>> ax.plot(x, y, 'k-')
+    >>> ax.plot(grid.x, grid.y, 'b.')
+
+    """
+
+    def __init__(self, xbry, ybry, beta, shape, ul_idx=0, focus=None,
+                 proj=None, nnodes=14, precision=1.0e-12, nppe=3,
+                 newton=True, thin=True, checksimplepoly=True,
+                 verbose=False, autogen=True):
+
+        # find the gridgen-c shared library
+        libgridgen_paths = [
+            ('libgridgen.so', os.path.join(sys.prefix, 'lib')),
+            ('libgridgen', os.path.join(sys.prefix, 'lib')),
+            ('libgridgen.so', '/usr/local/lib'),
+            ('libgridgen', '/usr/local/lib'),
+        ]
+
+        for name, path in libgridgen_paths:
+            try:
+                self._libgridgen = np.ctypeslib.load_library(name, path)
+                break
+            except OSError:
+                pass
+            else:
+                print("libgridgen: attempted names/locations")
+                print(libgridgen_paths)
+                raise OSError('Failed to load libgridgen.')
+
+        # initialize/set types of critical variables
+        self._libgridgen.gridgen_generategrid2.restype = ctypes.POINTER(ctypes.c_void_p)
+        self._libgridgen.gridnodes_getx.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+        self._libgridgen.gridnodes_gety.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+        self._libgridgen.gridnodes_getnce1.restype = ctypes.c_int
+        self._libgridgen.gridnodes_getnce2.restype = ctypes.c_int
+        self._libgridgen.gridmap_build.restype = ctypes.c_void_p
+
+        # store the boundary, reproject if possible
+        self.xbry = np.asarray(xbry, dtype='d')
+        self.ybry = np.asarray(ybry, dtype='d')
+        self.proj = proj
+        if self.proj is not None:
+            self.xbry, self.ybry = proj(self.xbry, self.ybry)
+
+        # store and check the beta parameter
+        self.beta = np.asarray(beta, dtype='d')
+        if not np.isclose(self.beta.sum(), 4.0):
+            raise ValueError('sum of beta must be 4.0')
+
+        # properties
+        self._sigmas = None
+        self._nsigmas = None
+        self._ny = shape[0]
+        self._nx = shape[1]
+        self._focus = focus
+
+        # other inputs
+        self.ul_idx = ul_idx
+        self.nnodes = nnodes
+        self.precision = precision
+        self.nppe = nppe
+        self.newton = newton
+        self.thin = thin
+        self.checksimplepoly = checksimplepoly
+        self.verbose = verbose
+
+        # initialize the gridnodes object
+        self._gn = None
+
+        # generate the grid
+        if autogen:
+            self.generate_grid()
+
+    def __del__(self):
+        """delete gridnode object upon deletion"""
+        self._libgridgen.gridnodes_destroy(self._gn)
+
+    @property
+    def sigmas(self):
+        """ Some weird intermediate value that takes a long time to the
+        C code to compute with complex boundaries. """
+        return self._sigmas
+
+    @sigmas.setter
+    def sigmas(self, value):
+        self._sigmas = value
+
+    @property
+    def nsigmas(self):
+        """ The number of sigma values. """
+        return self._nsigmas
+
+    @nsigmas.setter
+    def nsigmas(self, value):
+        self._nsigmas = value
+
+    @property
+    def nx(self):
+        """ Number of nodes in the x-direction (columns). """
+        return self._nx
+
+    @nx.setter
+    def nx(self, value):
+        self._nx = value
+
+    @property
+    def ny(self):
+        """ Number of nodes in the y-direction (rows). """
+        return self._ny
+
+    @ny.setter
+    def ny(self, value):
+        self._ny = value
+
+    @property
+    def shape(self):
+        """ The shape of the overall grid (row, columns). """
+        return (self.ny, self.nx)
+
+    @property
+    def focus(self):
+        """ The :class:`~Focus` object associated with the grid. """
+        return self._focus
+
+    @focus.setter
+    def focus(self, value):
+        self._focus = value
 
     def generate_grid(self):
+        """
+        The business end of this whole thing. Collects all of the
+        inputs, passes them to the gridgen-c code, and returns arrays
+        of node coordinates. Unless ``autogen`` was set to False, this
+        happens when the object is instantiated.
 
+        Parameters
+        ----------
+        None
+
+        """
         if self._gn is not None:
             self._libgridgen.gridnodes_destroy(self._gn)
 
+        # number of boundary points
         nbry = len(self.xbry)
 
-        nsigmas = ctypes.c_int(0)
-        sigmas = ctypes.c_void_p(0)
+        # sigma parameter
+        if self.sigmas is None:
+            self.nsigmas = ctypes.c_int(0)
+            self.sigmas = ctypes.c_void_p(0)
+
+        # rectangularized domain
         nrect = ctypes.c_int(0)
-        xrect =  ctypes.c_void_p(0)
+        xrect = ctypes.c_void_p(0)
         yrect = ctypes.c_void_p(0)
 
+        # focus the grid if necessary
         if self.focus is None:
             ngrid = ctypes.c_int(0)
             xgrid = ctypes.POINTER(ctypes.c_double)()
@@ -867,96 +939,53 @@ class Gridgen(CGrid):
             xgrid = (ctypes.c_double * xgrid.size)(*xgrid.flatten())
             ygrid = (ctypes.c_double * ygrid.size)(*ygrid.flatten())
 
+        # call the C-code to make make the grid
         self._gn = self._libgridgen.gridgen_generategrid2(
-             ctypes.c_int(nbry),
-             (ctypes.c_double * nbry)(*self.xbry),
-             (ctypes.c_double * nbry)(*self.ybry),
-             (ctypes.c_double * nbry)(*self.beta),
-             ctypes.c_int(self.ul_idx),
-             ctypes.c_int(self.nx),
-             ctypes.c_int(self.ny),
-             ngrid,
-             xgrid,
-             ygrid,
-             ctypes.c_int(self.nnodes),
-             ctypes.c_int(self.newton),
-             ctypes.c_double(self.precision),
-             ctypes.c_int(self.checksimplepoly),
-             ctypes.c_int(self.thin),
-             ctypes.c_int(self.nppe),
-             ctypes.c_int(self.verbose),
-             ctypes.byref(nsigmas),
-             ctypes.byref(sigmas),
-             ctypes.byref(nrect),
-             ctypes.byref(xrect),
-             ctypes.byref(yrect) )
+            ctypes.c_int(nbry),
+            (ctypes.c_double * nbry)(*self.xbry),
+            (ctypes.c_double * nbry)(*self.ybry),
+            (ctypes.c_double * nbry)(*self.beta),
+            ctypes.c_int(self.ul_idx),
+            ctypes.c_int(self.nx),
+            ctypes.c_int(self.ny),
+            ngrid,
+            xgrid,
+            ygrid,
+            ctypes.c_int(self.nnodes),
+            ctypes.c_int(self.newton),
+            ctypes.c_double(self.precision),
+            ctypes.c_int(self.checksimplepoly),
+            ctypes.c_int(self.thin),
+            ctypes.c_int(self.nppe),
+            ctypes.c_int(self.verbose),
+            ctypes.byref(self.nsigmas),
+            ctypes.byref(self.sigmas),
+            ctypes.byref(nrect),
+            ctypes.byref(xrect),
+            ctypes.byref(yrect)
+        )
 
+        # x-positions
         x = self._libgridgen.gridnodes_getx(self._gn)
         x = np.asarray([x[0][i] for i in range(self.ny*self.nx)])
         x.shape = (self.ny, self.nx)
 
+        # y-positions
         y = self._libgridgen.gridnodes_gety(self._gn)
         y = np.asarray([y[0][i] for i in range(self.ny*self.nx)])
         y.shape = (self.ny, self.nx)
 
+        # mask out invalid values
         if np.any(np.isnan(x)) or np.any(np.isnan(y)):
             x = np.ma.masked_where(np.isnan(x), x)
             y = np.ma.masked_where(np.isnan(y), y)
 
-        # if self.proj is not None:
-        #     lon, lat = self.proj(x, y, inverse=True)
-        #     super(Gridgen, self).__init__(lon, lat, proj=self.proj)
-        # else:
         super(Gridgen, self).__init__(x, y)
 
 
 
-    def __init__(self, xbry, ybry, beta, shape, ul_idx=0, \
-                 focus=None, proj=None, \
-                 nnodes=14, precision=1.0e-12, nppe=3, \
-                 newton=True, thin=True, checksimplepoly=True, verbose=False):
-
-        self._libgridgen = np.ctypeslib.load_library('libgridgen.so', '/usr/local/lib')
-
-        self._libgridgen.gridgen_generategrid2.restype = ctypes.c_void_p
-        self._libgridgen.gridnodes_getx.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
-        self._libgridgen.gridnodes_gety.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
-        self._libgridgen.gridnodes_getnce1.restype = ctypes.c_int
-        self._libgridgen.gridnodes_getnce2.restype = ctypes.c_int
-        self._libgridgen.gridmap_build.restype = ctypes.c_void_p
-
-        self.xbry = np.asarray(xbry, dtype='d')
-        self.ybry = np.asarray(ybry, dtype='d')
-        self.beta = np.asarray(beta, dtype='d')
-        if self.beta.sum() != 4.0:
-            raise ValueError('sum of beta must be 4.0')
-
-        self.shape = shape
-        self.ny = shape[0]
-        self.nx = shape[1]
-        self.ul_idx = ul_idx
-        self.focus = focus
-        self.nnodes = nnodes
-        self.precision = precision
-        self.nppe = nppe
-        self.newton = newton
-        self.thin = thin
-        self.checksimplepoly = checksimplepoly
-        self.verbose = verbose
-
-        self.proj = proj
-        if self.proj is not None:
-            self.xbry, self.ybry = proj(self.xbry, self.ybry)
-
-        self._gn = None
-        self.generate_grid()
-
-    def __del__(self):
-        """delete gridnode object upon deletion"""
-        self._libgridgen.gridnodes_destroy(self._gn)
-
-
-def rho_to_vert(xr, yr, pm, pn, ang):
+def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
+    """ Possibly converts centroids to nodes """
     Mp, Lp = xr.shape
     x = empty((Mp+1, Lp+1), dtype='d')
     y = empty((Mp+1, Lp+1), dtype='d')
@@ -1005,65 +1034,8 @@ def rho_to_vert(xr, yr, pm, pn, ang):
     return x, y
 
 
-class edit_mask_mesh(object):
-
-    def _on_key(self, event):
-        if event.key == 'e':
-            self._clicking = not self._clicking
-            plt.title('Editing %s -- click "e" to toggle' % self._clicking)
-            plt.draw()
-
-    def _on_click(self, event):
-        x, y = event.xdata, event.ydata
-        if event.button==1 and event.inaxes is not None and self._clicking == True:
-            d = (x-self._xc)**2 + (y-self._yc)**2
-            if isinstance(self.xv, np.ma.MaskedArray):
-                idx = np.argwhere(d[~self._xc.mask] == d.min())
-            else:
-                idx = np.argwhere(d.flatten() == d.min())
-            self._mask[idx] = float(not self._mask[idx])
-            i, j = np.argwhere(d == d.min())[0]
-            self.mask[i, j] = float(not self.mask[i, j])
-            self._pc.set_array(self._mask)
-            self._pc.changed()
-            plt.draw()
-
-    def __init__(self, xv, yv, mask, **kwargs):
-        if xv.shape != yv.shape:
-            raise ValueError('xv and yv must have the same shape')
-        for dx, dq in zip(xv.shape, mask.shape):
-             if dx != dq+1:
-                raise ValueError('xv and yv must be cell verticies '
-                                 '(i.e., one cell bigger in each dimension)')
-
-        self.xv = xv
-        self.yv = yv
-
-        self.mask = mask
-
-        land_color = kwargs.pop('land_color', (0.6, 1.0, 0.6))
-        sea_color = kwargs.pop('sea_color', (0.6, 0.6, 1.0))
-
-        cm = plt.matplotlib.colors.ListedColormap([land_color, sea_color],
-                                                 name='land/sea')
-        self._pc = plt.pcolor(xv, yv, mask, cmap=cm, vmin=0, vmax=1, **kwargs)
-        self._xc = 0.25*(xv[1:,1:]+xv[1:,:-1]+xv[:-1,1:]+xv[:-1,:-1])
-        self._yc = 0.25*(yv[1:,1:]+yv[1:,:-1]+yv[:-1,1:]+yv[:-1,:-1])
-
-        if isinstance(self.xv, np.ma.MaskedArray):
-            self._mask = mask[~self._xc.mask]
-        else:
-            self._mask = mask.flatten()
-
-        plt.connect('button_press_event', self._on_click)
-        plt.connect('key_press_event', self._on_key)
-        self._clicking = False
-        plt.title('Editing %s -- click "e" to toggle' % self._clicking)
-        plt.draw()
-
-
-def uvp_masks(rmask):
-    '''
+def uvp_masks(rmask):  # pragma: no cover
+    """
     return u-, v-, and psi-masks based on input rho-mask
 
     Parameters
@@ -1077,7 +1049,7 @@ def uvp_masks(rmask):
     (umask, vmask, pmask) : ndarrays
         masks at u-, v-, and psi-points
 
-    '''
+    """
     rmask = np.asarray(rmask)
     if rmask.ndim != 2:
         raise ValueError('rmask must be a 2D array')
@@ -1092,7 +1064,9 @@ def uvp_masks(rmask):
     return umask, vmask, pmask
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
+    import matplotlib.pyplot as plt
+
     geographic = False
     if geographic:
         from mpl_toolkits.basemap import Basemap

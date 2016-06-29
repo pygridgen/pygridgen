@@ -18,6 +18,8 @@ external/gridutils/subgrid
 external/gridutils/xy2ij
 external/nn/minell
 external/nn/nnbathy
+external/gridgen/examples/sigmas.*
+external/gridgen/examples/rect.*
 
 # OS Files
 ## Windows
@@ -41,6 +43,7 @@ Icon
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+.ipynb_checkpoints
 
 # C extensions
 *.so
@@ -73,6 +76,8 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+.noseids
+.coverage
 htmlcov/
 .tox/
 .coverage
@@ -89,6 +94,8 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+docs/tutorial/*.rst
+docs/tutorial/*/*.png
 
 # PyBuilder
 target/

@@ -1,17 +1,19 @@
-
 import sys
 import os
 import site
+import ctypes
+from pkg_resources import resource_filename
 
 import numpy as np
-import ctypes
+import matplotlib.pyplot as plt
+
 
 class csa(object):
-    '''cubic spline approximation for re-gridding 2D data sets
+    """
+    Cubic spline approximation for re-gridding 2D data sets
 
     Parameters
-    ==========
-
+    ----------
     xin : array-like
         an array of x data point locations
     yin : array-like
@@ -35,16 +37,14 @@ class csa(object):
         calculation (default = 40)
 
     Returns
-    =======
-
+    -------
     csa_interp : object
         This object can be called with arguments of x and y points to be
         interpolated to.  The input data, zin, can be reset by overwriting
         that object parameter.
 
     Examples
-    ========
-
+    --------
     >>> import csa
     >>> xin = np.random.randn(10000)
     >>> yin = np.random.randn(10000)
@@ -56,10 +56,14 @@ class csa(object):
     >>> zout = csa_interp
     >>> print(zout)
 
-    '''
+    """
 
-    path = os.path.join(site.getsitepackages()[0], 'pygridgen')
-    _csa = np.ctypeslib.load_library('_csa', path)
+    try:
+        path = os.path.dirname(resource_filename('pygridgen', '_csa.so'))
+        _csa = np.ctypeslib.load_library('_csa', path)
+    except OSError:
+        path = os.path.join(site.getsitepackages()[0], 'pygridgen')
+        _csa = np.ctypeslib.load_library('_csa', path)
 
     _csa.csa_approximatepoints2.restype = ctypes.POINTER(ctypes.c_double)
 
@@ -71,7 +75,7 @@ class csa(object):
             raise ValueError('xin and yin must have the same number '
                              'of elements')
 
-        self._set_zin(zin)
+        self._zin = zin
 
         self.sigma = sigma
 
@@ -79,6 +83,18 @@ class csa(object):
         self.nppc = nppc
         self.npmin = npmin
         self.npmax = npmax
+
+    @property
+    def zin(self):
+        """ Input values to be approximated """
+        return self._zin
+    @zin.setter
+    def zin(self, value):
+        zin = np.asarray(value)
+        if zin.size != self.xin.size:
+            raise ValueError('zin must have the same number of elements as '
+                             'xin and yin')
+        self._zin = value
 
     def _calculate_points(self, xout, yout):
 
@@ -115,28 +131,69 @@ class csa(object):
         return np.ma.masked_where(np.isnan(zout), zout)
 
     def __call__(self, xout, yout):
-        '''Return interpolated values of zin at locations (xout, yout)'''
+        """
+        Return interpolated values of ``zin``
+
+        Parameters
+        ----------
+        xout, yout : array-like
+            Two-dimensional arrays of x/y coordinates at which ``zout``
+            should be estimated.
+
+        Returns
+        -------
+        zout : numpy ndarray
+            Interpolated z-values.
+
+        """
+
         xout = np.asarray(xout)
         yout = np.asarray(yout)
         return self._calculate_points(xout, yout)
 
-    def _set_zin(self, zin):
-        zin = np.asarray(zin)
-        if zin.size != self.xin.size:
-            raise ValueError('zin must have the same number of elements as '
-                             'xin and yin')
-        self._zin = zin
+    def plot(self, xout, yout, ax=None, mesh_opts=None, scatter_opts=None):
+        """
+        Plot the input and output data set from the cubic split
+        approximation.
 
-    zin = property(
-        lambda self: self._zin, _set_zin,
-        doc='Input values to be approximated'
-    )
+        Parameters
+        ----------
+        xout, yout : array-like
+            Two-dimensional arrays of x/y coordinates at which ``zout``
+            should be estimated.
+        ax : matplotlib Axes, optional
+            The axes on which the plot should be drawn. If not provided,
+            a new axes and figure will be created.
+        mesh_opts, scatter_opts : dict, optional
+            Dictionary of plotting options passed to matplotlib's
+            `pcolormesh` and `scatter` functions, respectively.
 
+        Returns
+        -------
+        ax : matplotlib Axes.
+
+        """
+
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = ax.figure
+
+        if mesh_opts is None:
+            mesh_opts = {}
+
+        if scatter_opts is None:
+            scatter_opts = {}
+
+        fig, ax = plt.subplots()
+        zout = self._calculate_points(xout, yout)
+        ax.pcolormesh(xout, yout, zout, **mesh_opts)
+        ax.scatter(self.xin, self.yin, 10, self.zin, **scatter_opts)
+        fig.colorbar()
+        return fig
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
     xin = np.random.randn(10000)
     yin = np.random.randn(10000)
     zin = np.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )
@@ -147,22 +204,13 @@ if __name__ == '__main__':
     xout, yout = np.mgrid[-3:3:100j, -3:3:100j]
 
     csa_interp = CSA(xin, yin, zin)
-
-    def plot_csa(csa_interp, xout, yout):
-
-        plt.figure()
-        zout = csa_interp(xout, yout)
-        plt.pcolormesh(xout, yout, zout, vmin=-1, vmax=1)
-
-        plt.scatter(csa_interp.xin, csa_interp.yin, 10, csa_interp.zin,
-                    edgecolors='none', vmin=-1, vmax=1)
-        plt.colorbar()
-
-    plot_csa(csa_interp, xout, yout)
+    fig, (ax1, ax2) = plt.subplots(ncols=2)
+    csa_interp.plot(xout, yout, ax=ax1, mesh_opts=dict(vmin=-1, vmax=1),
+                    scatter_opts=dict(vmin=-1, vmax=1, edgecolors='none'))
 
     csa_interp.zin = np.cos( xin + yin**2 )
-
-    plot_csa(csa_interp, xout, yout)
+    csa_interp.plot(xout, yout, ax=ax2, mesh_opts=dict(vmin=-1, vmax=1),
+                    scatter_opts=dict(vmin=-1, vmax=1, edgecolors='none'))
 
     plt.show()
 
