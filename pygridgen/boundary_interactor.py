@@ -298,7 +298,7 @@ class BoundaryInteractor(object):  # pragma: no cover
         # Set default gridgen option, and copy over specified options.
         self.gridgen_options = {'ul_idx': 0, 'shp': (32, 32)}
 
-        for key, value in gridgen_options.iteritems():
+        for key, value in iter(gridgen_options.items()):
             self.gridgen_options[key] = gridgen_options[key]
 
         x = list(x); y = list(y)
@@ -363,7 +363,7 @@ class BoundaryInteractor(object):  # pragma: no cover
         self._line.set_data(x, y)
         self.beta = bry_dict['beta']
         if hasattr(self, '_poly'):
-            self._poly.xy = zip(x, y)
+            self._poly.xy = list(zip(x, y))
             self._update_beta_lines()
             self._draw_callback(None)
             self._canvas.draw()
