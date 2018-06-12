@@ -88,6 +88,7 @@ class csa(object):
     def zin(self):
         """ Input values to be approximated """
         return self._zin
+
     @zin.setter
     def zin(self, value):
         zin = numpy.asarray(value)
@@ -97,7 +98,6 @@ class csa(object):
         self._zin = value
 
     def _calculate_points(self, xout, yout):
-
         xout = numpy.asarray(xout)
         yout = numpy.asarray(yout)
 
@@ -112,18 +112,18 @@ class csa(object):
         zout = None
 
         zout = self._csa.csa_approximatepoints2(
-             ctypes.c_int(nin),                        #int nin
-             (ctypes.c_double * nin)(*self.xin.flat),  #double xin[]
-             (ctypes.c_double * nin)(*self.yin.flat),  #double yin[]
-             (ctypes.c_double * nin)(*self._zin.flat), #double zin[]
-             sigma,                                    #double sigma[] or NULL
-             ctypes.c_int(nout),                       #int nout
-             (ctypes.c_double * nout)(*xout.flat),     #double xout[]
-             (ctypes.c_double * nout)(*yout.flat),     #double yout[]
-             ctypes.c_int(self.npmin),                 #int npmin
-             ctypes.c_int(self.npmax),                 #int npmax
-             ctypes.c_int(self.k),                     #int k
-             ctypes.c_int(self.nppc)                   #int nppc
+            ctypes.c_int(nin),                         # int nin
+            (ctypes.c_double * nin)(*self.xin.flat),   # double xin[]
+            (ctypes.c_double * nin)(*self.yin.flat),   # double yin[]
+            (ctypes.c_double * nin)(*self._zin.flat),  # double zin[]
+            sigma,                                     # double sigma[] or NULL
+            ctypes.c_int(nout),                        # int nout
+            (ctypes.c_double * nout)(*xout.flat),      # double xout[]
+            (ctypes.c_double * nout)(*yout.flat),      # double yout[]
+            ctypes.c_int(self.npmin),                  # int npmin
+            ctypes.c_int(self.npmax),                  # int npmax
+            ctypes.c_int(self.k),                      # int k
+            ctypes.c_int(self.nppc)                    # int nppc
         )
 
         zout = numpy.asarray([zout[i] for i in range(nout)])
@@ -196,7 +196,7 @@ class csa(object):
 if __name__ == '__main__':
     xin = numpy.random.randn(10000)
     yin = numpy.random.randn(10000)
-    zin = numpy.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )
+    zin = numpy.sin(xin**2 + yin**2) / (xin**2 + yin**2)
     sigma = 0.01 * numpy.ones_like(xin)
 
     print(' ### Set up input data points')
@@ -208,9 +208,8 @@ if __name__ == '__main__':
     csa_interp.plot(xout, yout, ax=ax1, mesh_opts=dict(vmin=-1, vmax=1),
                     scatter_opts=dict(vmin=-1, vmax=1, edgecolors='none'))
 
-    csa_interp.zin = numpy.cos( xin + yin**2 )
+    csa_interp.zin = numpy.cos(xin + yin**2)
     csa_interp.plot(xout, yout, ax=ax2, mesh_opts=dict(vmin=-1, vmax=1),
                     scatter_opts=dict(vmin=-1, vmax=1, edgecolors='none'))
 
     pyplot.show()
-
