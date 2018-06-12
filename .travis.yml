@@ -10,6 +10,9 @@ matrix:
         - COVERAGE=false
     - python: 3.5
       env:
+        - COVERAGE=false
+    - python: 3.6
+      env:
         - COVERAGE=true
 
 before_install:
@@ -22,24 +25,21 @@ before_install:
   - conda install --yes nomkl
 
 install:
-  - conda create --name testenv --yes python=$TRAVIS_PYTHON_VERSION numpy matplotlib docopt requests pyyaml pytest
-  - source activate testenv
-  - conda install --yes pyproj gridgen coverage --channel=conda-forge
+  - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION nomkl gridgen numpy matplotlib pyproj pytest pytest-cov pytest-pep8 coverage docopt requests pyyaml
+  - source activate test
+  - pip install codecov
   - pip install .
-  - pip install coveralls
 
-
-before_script:
-  - ls -al /usr/local/lib
-  - ls -al /usr/local/include
-  - conda list
+# before_script:
+#   - ls -al /usr/local/lib
+#   - ls -al /usr/local/include
+#   - conda list
 
 script:
-  - python check_pygridgen.py ${ARGS}
+   - coverage run --source pygridgen check_pygridgen.py --verbose --pep8
 
 after_success:
   - if [ ${COVERAGE} = true ]; then
-      coverage run --source pygridgen check_pygridgen.py;
       coverage report -m;
       coveralls;
     fi

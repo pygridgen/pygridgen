@@ -1,9 +1,9 @@
 `pygridgen`
 ===========
-.. image:: https://travis-ci.org/phobson/pygridgen.svg?branch=develop
-    :target: https://travis-ci.org/phobson/pygridgen
-.. image:: https://coveralls.io/repos/phobson/pygridgen/badge.svg?branch=develop&service=github
-  :target: https://coveralls.io/github/phobson/pygridgen?branch=develop
+.. image:: https://travis-ci.org/pygridgen/pygridgen.svg?branch=master
+    :target: https://travis-ci.org/pygridgen/pygridgen
+.. image:: https://coveralls.io/repos/pygridgen/pygridgen/badge.svg?branch=master&service=github
+  :target: https://coveralls.io/github/pygridgen/pygridgen?branch=master
 
 
 A Python interface to Pavel Sakov's `gridgen`_ library
@@ -12,12 +12,12 @@ A Python interface to Pavel Sakov's `gridgen`_ library
 
 The full documentation for this for library is `here`_.
 
-.. _here: https://phobson.github.io/pygridgen
+.. _here: https://pygridgen.github.io/pygridgen
 
 For more detailed documentation on grid generation, manipulation, and visualization,
 see the documentation for `pygridtools`_.
 
-.. _pygridtools: https://phobson.github.io/pygridtools
+.. _pygridtools: https://pygridgen.github.io/pygridtools
 
 
 Credits
@@ -45,5 +45,5 @@ Provided that all of the shared C libraries are installed, the remaining python 
 Testing
 ~~~~~~~
 
-Tests are written using the `nose` package.
-From the source tree, run them simply with by invoking ``nosetests`` in a terminal.
+Tests are written using the `pytest` package.
+From the source tree, run them simply with by invoking ``pytest`` in a terminal.

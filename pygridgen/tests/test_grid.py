@@ -661,7 +661,6 @@ def test_boundary(gg, known, options):
     if grid.proj is not None:
         known_x, known_y = grid.proj(known_x, known_y)
 
-
     nptest.assert_array_almost_equal(
         grid.xbry,
         known_x,
