@@ -513,36 +513,23 @@ class CGrid(object):
         """
         Calculate orthogonality error in radians
         """
+        def abs_angle(du, dv):
+            return numpy.abs(numpy.arccos(du.real * dv.real + du.imag * dv.imag))
+
         z = self.x_vert + 1j * self.y_vert
+        du = numpy.diff(z, axis=1) / numpy.abs(numpy.diff(z, axis=1))
+        dv = numpy.diff(z, axis=0) / numpy.abs(numpy.diff(z, axis=0))
 
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[:-1, :]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, :-1]
-        ang1 = numpy.arccos(du.real * dv.real + du.imag * dv.imag)
+        _angles = [
+            abs_angle(du[:-1, :], dv[:, :-1]),
+            abs_angle(du[1:, :], dv[:, :-1]),
+            abs_angle(du[:-1, :], dv[:, 1:]),
+            abs_angle(du[1:, :], dv[:, 1:]),
+        ]
+        angles = numpy.mean(_angles, axis=0) - (numpy.pi / 2)
+        return angles
 
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[1:, :]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, :-1]
-        ang2 = numpy.arccos(du.real * dv.real + du.imag * dv.imag)
-
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[:-1, :]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, 1:]
-        ang3 = numpy.arccos(du.real * dv.real + du.imag * dv.imag)
-
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[1:, :]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, 1:]
-        ang4 = numpy.arccos(du.real * dv.real + du.imag * dv.imag)
-
-        ang = numpy.mean([abs(ang1), abs(ang2), abs(ang3), abs(ang4)], axis=0)
-        ang = (ang - numpy.pi / 2.0)
-        return ang
-
+    @numpy.deprecate(new_name='orthogonality')
     def calculate_orthogonality(self):
         """
         Should deprecate in favor of property ``orthogonality``

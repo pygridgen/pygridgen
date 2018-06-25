@@ -713,7 +713,7 @@ def test_boundary(gg, known, options):
 
 
 @pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_orthogonality (gg, known, options):
+def test_orthogonality(gg, known, options):
     grid = gg(options)
     known_xy = known()
     known_ortho = known_xy['ortho']
