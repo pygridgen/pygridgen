@@ -70,7 +70,7 @@ class CSA(object):
         except OSError:
             pass
         else:
-            raise OSError('Failed to load libgridgen.')
+            raise OSError('Failed to load the CSA library.')
 
     _csa.csa_approximatepoints2.restype = ctypes.POINTER(ctypes.c_double)
 
