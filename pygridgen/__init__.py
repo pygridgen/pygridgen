@@ -15,7 +15,7 @@ Released under an MIT license.
 
 from .grid import *
 
-from .tests import test
+from .tests import test, teststrict
 
 __authors__ = [
     'Robert Hetland <hetland@tamu.edu>',

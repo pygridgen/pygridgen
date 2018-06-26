@@ -8,7 +8,7 @@ import numpy
 from matplotlib import pyplot
 
 
-class csa(object):
+class CSA(object):
     """
     Cubic spline approximation for re-gridding 2D data sets
 
@@ -45,25 +45,32 @@ class csa(object):
 
     Examples
     --------
-    >>> import csa
+    >>> from pygridgen import csa
     >>> xin = numpy.random.randn(10000)
     >>> yin = numpy.random.randn(10000)
     >>> zin = numpy.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )
     >>> xout, yout = numpy.mgrid[-3:3:10j, -3:3:10j]
     >>> csa_interp = csa.CSA(xin, yin, zin)
     >>> zout = csa_interp(xout, yout)
-    >>> csa_interp.zin =  numpy.cos( xin + yin**2 )
-    >>> zout = csa_interp
-    >>> print(zout)
+    >>> img = pyplot.imshow(zout)
 
     """
 
-    try:
-        path = os.path.dirname(resource_filename('pygridgen', '_csa.so'))
-        _csa = numpy.ctypeslib.load_library('_csa', path)
-    except OSError:
-        path = os.path.join(site.getsitepackages()[0], 'pygridgen')
-        _csa = numpy.ctypeslib.load_library('_csa', path)
+    libcsa_paths = [
+        ('libcsa.so', os.path.join(sys.prefix, 'lib')),
+        ('libcsa', os.path.join(sys.prefix, 'lib')),
+        ('libcsa.so', '/usr/local/lib'),
+        ('libcsa', '/usr/local/lib'),
+    ]
+
+    for name, path in libcsa_paths:
+        try:
+            _csa = numpy.ctypeslib.load_library(name, path)
+            break
+        except OSError:
+            pass
+        else:
+            raise OSError('Failed to load libgridgen.')
 
     _csa.csa_approximatepoints2.restype = ctypes.POINTER(ctypes.c_double)
 
