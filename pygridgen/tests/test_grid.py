@@ -173,6 +173,18 @@ def known_xy_basic():
         [ 0.12,  0.37,  0.63,  0.88]
     ])
 
+    known_ortho = numpy.array([
+        [ 3.559e-01,  3.231e-01, -3.231e-01, -3.559e-01],
+        [ 1.044e-01,  6.510e-02, -6.510e-02, -1.044e-01],
+        [ 3.690e-02,  2.920e-02, -2.920e-02, -3.690e-02],
+        [ 1.490e-02,  1.340e-02, -1.340e-02, -1.490e-02],
+        [ 6.300e-03,  6.000e-03, -6.000e-03, -6.300e-03],
+        [ 2.700e-03,  2.700e-03, -2.700e-03, -2.700e-03],
+        [ 1.200e-03,  1.200e-03, -1.200e-03, -1.200e-03],
+        [ 5.000e-04,  5.000e-04, -5.000e-04, -5.000e-04],
+        [ 1.000e-04,  1.000e-04, -1.000e-04, -1.000e-04]
+    ])
+
     known = {
         'boundary': (x, y),
         'vert': (known_x, known_y),
@@ -180,6 +192,7 @@ def known_xy_basic():
         'rho': (known_x_rho, known_y_rho),
         'u': (known_x_u, known_y_u),
         'v': (known_x_v, known_y_v),
+        'ortho': known_ortho
     }
     return known
 
@@ -311,6 +324,17 @@ def known_xy_focused():
         [ 0.06,  0.19,  0.31,  0.44,  0.56,  0.69,  0.81,  0.94]
     ])
 
+    known_ortho = numpy.array([
+        [ 3.234e-01,  4.930e-02,  3.200e-02,  3.006e-01, -3.006e-01, -3.200e-02, -4.930e-02, -3.234e-01],
+        [ 3.450e-02,  4.170e-02,  3.210e-02,  1.920e-02, -1.920e-02, -3.210e-02, -4.170e-02, -3.450e-02],
+        [ 8.700e-03,  1.750e-02,  1.550e-02,  6.400e-03, -6.400e-03, -1.550e-02, -1.750e-02, -8.700e-03],
+        [ 3.000e-03,  6.900e-03,  6.500e-03,  2.600e-03, -2.600e-03, -6.500e-03, -6.900e-03, -3.000e-03],
+        [ 1.200e-03,  2.700e-03,  2.600e-03,  1.100e-03, -1.100e-03, -2.600e-03, -2.700e-03, -1.200e-03],
+        [ 4.000e-04,  1.100e-03,  1.000e-03,  4.000e-04, -4.000e-04, -1.000e-03, -1.100e-03, -4.000e-04],
+        [ 2.000e-04,  4.000e-04,  4.000e-04,  2.000e-04, -2.000e-04, -4.000e-04, -4.000e-04, -2.000e-04],
+        [ 0.000e+00,  1.000e-04,  1.000e-04,  0.000e+00, -0.000e+00, -1.000e-04, -1.000e-04, -0.000e+00]
+    ])
+
     known = {
         'boundary': (x, y),
         'vert': (known_x, known_y),
@@ -318,6 +342,7 @@ def known_xy_focused():
         'rho': (known_x_rho, known_y_rho),
         'u': (known_x_u, known_y_u),
         'v': (known_x_v, known_y_v),
+        'ortho': known_ortho
     }
     return known
 
@@ -457,6 +482,18 @@ def known_xy_with_proj():
         [ 4981707.8 ,  4983233.25,  4982012.78]
     ])
 
+    known_ortho = numpy.array([
+        [-7.960e-02, -8.200e-03, -7.990e-02],
+        [-1.250e-02, -1.210e-02, -1.420e-02],
+        [-4.900e-03, -8.300e-03, -5.100e-03],
+        [-3.300e-03, -5.900e-03, -2.900e-03],
+        [-4.200e-03, -6.400e-03, -2.200e-03],
+        [-9.000e-03, -1.040e-02, -6.000e-04],
+        [-2.600e-02, -2.160e-02,  1.110e-02],
+        [-9.170e-02, -5.680e-02,  9.250e-02],
+        [-4.120e-01, -1.884e-01,  6.207e-01]
+    ])
+
     known = {
         'boundary': (x, y),
         'vert': (known_x, known_y),
@@ -464,6 +501,7 @@ def known_xy_with_proj():
         'rho': (known_x_rho, known_y_rho),
         'u': (known_x_u, known_y_u),
         'v': (known_x_v, known_y_v),
+        'ortho': known_ortho
     }
     return known
 
@@ -661,7 +699,6 @@ def test_boundary(gg, known, options):
     if grid.proj is not None:
         known_x, known_y = grid.proj(known_x, known_y)
 
-
     nptest.assert_array_almost_equal(
         grid.xbry,
         known_x,
@@ -671,6 +708,18 @@ def test_boundary(gg, known, options):
     nptest.assert_array_almost_equal(
         grid.ybry,
         known_y,
+        decimal=2
+    )
+
+
+@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
+def test_orthogonality(gg, known, options):
+    grid = gg(options)
+    known_xy = known()
+    known_ortho = known_xy['ortho']
+    nptest.assert_array_almost_equal(
+        grid.orthogonality,
+        known_ortho,
         decimal=2
     )
 

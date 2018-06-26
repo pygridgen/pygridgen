@@ -1,16 +1,15 @@
 # encoding: utf-8
-"""Tools for creating curvilinear grids using gridgen by Pavel Sakov"""
-
-
-__docformat__ = "restructuredtext en"
-
-
 import os
 import sys
 import ctypes
 
 import numpy
 from matplotlib.path import Path
+
+
+"""Tools for creating curvilinear grids using gridgen by Pavel Sakov"""
+
+__docformat__ = "restructuredtext en"
 
 
 def _points_inside_poly(points, verts):
@@ -314,23 +313,23 @@ class CGrid(object):
         Returns the mask for the cells
         """
         if self._mask_rho is None:
-            mask_shape = tuple([n-1 for n in self.x_vert.shape])
+            mask_shape = tuple([n - 1 for n in self.x_vert.shape])
             self._mask_rho = numpy.ones(mask_shape, dtype='d')
 
             # If maskedarray is given for vertices, modify the mask such that
             # non-existant grid points are masked.  A cell requires all four
             # verticies to be defined as a water point.
             if isinstance(self.x_vert, numpy.ma.MaskedArray):
-                mask = (self.x_vert.mask[:-1,:-1] | self.x_vert.mask[1:,:-1] |
-                        self.x_vert.mask[:-1,1:] | self.x_vert.mask[1:,1:])
+                mask = (self.x_vert.mask[:-1, :-1] | self.x_vert.mask[1:, :-1] |
+                        self.x_vert.mask[:-1, 1:] | self.x_vert.mask[1:, 1:])
                 self._mask_rho = numpy.asarray(
                     ~(~numpy.bool_(self.mask_rho) | mask),
                     dtype='d'
                 )
 
             if isinstance(self.y_vert, numpy.ma.MaskedArray):
-                mask = (self.y_vert.mask[:-1,:-1] | self.y_vert.mask[1:,:-1] |
-                        self.y_vert.mask[:-1,1:] | self.y_vert.mask[1:,1:])
+                mask = (self.y_vert.mask[:-1, :-1] | self.y_vert.mask[1:, :-1] |
+                        self.y_vert.mask[:-1, 1:] | self.y_vert.mask[1:, 1:])
                 self._mask_rho = numpy.asarray(
                     ~(~numpy.bool_(self.mask_rho) | mask),
                     dtype='d'
@@ -350,42 +349,42 @@ class CGrid(object):
         """
         x-coordinate of u-point (leading edge in i-direction?)
         """
-        return 0.5*(self.x_vert[:-1, 1:-1] + self.x_vert[1:, 1:-1])
+        return 0.5 * (self.x_vert[:-1, 1:-1] + self.x_vert[1:, 1:-1])
 
     @property
     def y_u(self):
         """
         y-coordinate of u-point (leading edge in i-direction?)
         """
-        return 0.5*(self.y_vert[:-1, 1:-1] + self.y_vert[1:, 1:-1])
+        return 0.5 * (self.y_vert[:-1, 1:-1] + self.y_vert[1:, 1:-1])
 
     @property
     def mask_u(self):
         """
         Mask for the u-points
         """
-        return self.mask_rho[:,1:] * self.mask_rho[:,:-1]
+        return self.mask_rho[:, 1:] * self.mask_rho[:, :-1]
 
     @property
     def x_v(self):
         """
         x-coordinate of y-point (leading edge in j-direction?)
         """
-        return 0.5*(self.x_vert[1:-1, :-1] + self.x_vert[1:-1, 1:])
+        return 0.5 * (self.x_vert[1:-1, :-1] + self.x_vert[1:-1, 1:])
 
     @property
     def y_v(self):
         """
         y-coordinate of y-point (leading edge in j-direction?)
         """
-        return 0.5*(self.y_vert[1:-1, :-1] + self.y_vert[1:-1, 1:])
+        return 0.5 * (self.y_vert[1:-1, :-1] + self.y_vert[1:-1, 1:])
 
     @property
     def mask_v(self):
         """
         mask for the v-points
         """
-        return self.mask_rho[1:, :]*self.mask_rho[:-1, :]
+        return self.mask_rho[1:, :] * self.mask_rho[:-1, :]
 
     @property
     def x_psi(self):
@@ -415,8 +414,8 @@ class CGrid(object):
         """
         dimension of cell in x-direction?
         """
-        x_temp = 0.5*(self.x_vert[1:, :]+self.x_vert[:-1, :])
-        y_temp = 0.5*(self.y_vert[1:, :]+self.y_vert[:-1, :])
+        x_temp = 0.5 * (self.x_vert[1:, :] + self.x_vert[:-1, :])
+        y_temp = 0.5 * (self.y_vert[1:, :] + self.y_vert[:-1, :])
         dx = numpy.sqrt(numpy.diff(x_temp, axis=1)**2 + numpy.diff(y_temp, axis=1)**2)
         return dx
 
@@ -429,8 +428,8 @@ class CGrid(object):
         """
         dimension of cell in y-direction?
         """
-        x_temp = 0.5*(self.x_vert[:, 1:]+self.x_vert[:, :-1])
-        y_temp = 0.5*(self.y_vert[:, 1:]+self.y_vert[:, :-1])
+        x_temp = 0.5 * (self.x_vert[:, 1:] + self.x_vert[:, :-1])
+        y_temp = 0.5 * (self.y_vert[:, 1:] + self.y_vert[:, :-1])
         dy = numpy.sqrt(numpy.diff(x_temp, axis=0)**2 + numpy.diff(y_temp, axis=0)**2)
         return dy
 
@@ -445,7 +444,7 @@ class CGrid(object):
         else:
             dndx = numpy.zeros(self.x_rho.shape, dtype='d')
 
-        dndx[1:-1, 1:-1] = 0.5*(self.dy[1:-1, 2:] - self.dy[1:-1, :-2])
+        dndx[1:-1, 1:-1] = 0.5 * (self.dy[1:-1, 2:] - self.dy[1:-1, :-2])
         return dndx
 
     @property
@@ -455,7 +454,7 @@ class CGrid(object):
         else:
             dmde = numpy.zeros(self.x_rho.shape, dtype='d')
 
-        dmde[1:-1, 1:-1] = 0.5*(self.dx[2:, 1:-1] - self.dx[:-2,1 :-1])
+        dmde[1:-1, 1:-1] = 0.5 * (self.dx[2:, 1:-1] - self.dx[:-2, 1:-1])
         return dmde
 
     @property
@@ -467,9 +466,9 @@ class CGrid(object):
             angle = numpy.zeros(self.x_vert.shape, dtype='d')
 
         angle_ud = numpy.arctan2(numpy.diff(self.y_vert, axis=1),
-                              numpy.diff(self.x_vert, axis=1))
+                                 numpy.diff(self.x_vert, axis=1))
         angle_lr = numpy.arctan2(numpy.diff(self.y_vert, axis=0),
-                              numpy.diff(self.x_vert, axis=0)) - (numpy.pi / 2.0)
+                                 numpy.diff(self.x_vert, axis=0)) - (numpy.pi / 2.0)
 
         # domain center
         angle[1:-1, 1:-1] = 0.25 * (
@@ -492,7 +491,7 @@ class CGrid(object):
             angle_ud[1:-1, -1] + angle_lr[1:, -1] + angle_lr[:-1, -1]
         )
 
-        #corners
+        # corners
         angle[0, 0] = 0.5 * (angle_lr[0, 0] + angle_ud[0, 0])
         angle[0, -1] = 0.5 * (angle_lr[0, -1] + angle_ud[0, -1])
         angle[-1, 0] = 0.5 * (angle_lr[-1, 0] + angle_ud[-1, 0])
@@ -514,36 +513,23 @@ class CGrid(object):
         """
         Calculate orthogonality error in radians
         """
-        z = self.x_vert + 1j*self.y_vert
+        def abs_angle(du, dv):
+            return numpy.abs(numpy.arccos(du.real * dv.real + du.imag * dv.imag))
 
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[:-1 ,:]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, :-1]
-        ang1 = numpy.arccos(du.real*dv.real + du.imag*dv.imag)
+        z = self.x_vert + 1j * self.y_vert
+        du = numpy.diff(z, axis=1) / numpy.abs(numpy.diff(z, axis=1))
+        dv = numpy.diff(z, axis=0) / numpy.abs(numpy.diff(z, axis=0))
 
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[1:, :]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, :-1]
-        ang2 = numpy.arccos(du.real*dv.real + du.imag*dv.imag)
+        _angles = [
+            abs_angle(du[:-1, :], dv[:, :-1]),
+            abs_angle(du[1:, :], dv[:, :-1]),
+            abs_angle(du[:-1, :], dv[:, 1:]),
+            abs_angle(du[1:, :], dv[:, 1:]),
+        ]
+        angles = numpy.mean(_angles, axis=0) - (numpy.pi / 2)
+        return angles
 
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[:-1, :]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, 1:]
-        ang3 = numpy.arccos(du.real*dv.real + du.imag*dv.imag)
-
-        du = numpy.diff(z, axis=1)
-        du = (du / abs(du))[1:, :]
-        dv = numpy.diff(z, axis=0)
-        dv = (dv / abs(dv))[:, 1:]
-        ang4 = numpy.arccos(du.real*dv.real + du.imag*dv.imag)
-
-        ang = numpy.mean([abs(ang1), abs(ang2), abs(ang3), abs(ang4)], axis=0)
-        ang = (ang - numpy.pi/2.0)
-        return ang
-
+    @numpy.deprecate(new_name='orthogonality')
     def calculate_orthogonality(self):
         """
         Should deprecate in favor of property ``orthogonality``
@@ -653,24 +639,23 @@ class CGrid_geo(CGrid):
     @property
     def dx(self):
         if self.use_gcdist:
-            az1, az2, dx = self.geod.inv(self.lon[:,1:], self.lat[:,1:],
-                                         self.lon[:,:-1], self.lat[:,:-1])
-            return 0.5 * (dx[1:,:] + dx[:-1,:])
+            az1, az2, dx = self.geod.inv(self.lon[:, 1:], self.lat[:, 1:],
+                                         self.lon[:, :-1], self.lat[:, :-1])
         else:
-            x_temp = 0.5*(self.x_vert[1:, :]+self.x_vert[:-1, :])
-            y_temp = 0.5*(self.y_vert[1:, :]+self.y_vert[:-1, :])
+            x_temp = 0.5 * (self.x_vert[1:, :] + self.x_vert[:-1, :])
+            y_temp = 0.5 * (self.y_vert[1:, :] + self.y_vert[:-1, :])
             dx = numpy.sqrt(numpy.diff(x_temp, axis=1)**2 + numpy.diff(y_temp, axis=1)**2)
             return dx
 
     @property
     def dy(self):
         if self.use_gcdist:
-            az1, ax2, dy = self.geod.inv(self.lon[1:,:], self.lat[1:,:],
-                                         self.lon[:-1,:], self.lat[:-1,:])
-            return 0.5 * (dy[:,1:] + dy[:,:-1])
+            az1, ax2, dy = self.geod.inv(self.lon[1:, :], self.lat[1:, :],
+                                         self.lon[:-1, :], self.lat[:-1, :])
+            return 0.5 * (dy[:, 1:] + dy[:, :-1])
         else:
-            x_temp = 0.5*(self.x_vert[:, 1:]+self.x_vert[:, :-1])
-            y_temp = 0.5*(self.y_vert[:, 1:]+self.y_vert[:, :-1])
+            x_temp = 0.5 * (self.x_vert[:, 1:] + self.x_vert[:, :-1])
+            y_temp = 0.5 * (self.y_vert[:, 1:] + self.y_vert[:, :-1])
             dy = numpy.sqrt(numpy.diff(x_temp, axis=0)**2 + numpy.diff(y_temp, axis=0)**2)
             return dy
 
@@ -933,7 +918,7 @@ class Gridgen(CGrid):
             xgrid = ctypes.POINTER(ctypes.c_double)()
             ygrid = ctypes.POINTER(ctypes.c_double)()
         else:
-            y, x =  numpy.mgrid[0:1:self.ny*1j, 0:1:self.nx*1j]
+            y, x = numpy.mgrid[0:1:self.ny * 1j, 0:1:self.nx * 1j]
             xgrid, ygrid = self.focus(x, y)
             ngrid = ctypes.c_int(xgrid.size)
             xgrid = (ctypes.c_double * xgrid.size)(*xgrid.flatten())
@@ -967,12 +952,12 @@ class Gridgen(CGrid):
 
         # x-positions
         x = self._libgridgen.gridnodes_getx(self._gn)
-        x = numpy.asarray([x[0][i] for i in range(self.ny*self.nx)])
+        x = numpy.asarray([x[0][i] for i in range(self.ny * self.nx)])
         x.shape = (self.ny, self.nx)
 
         # y-positions
         y = self._libgridgen.gridnodes_gety(self._gn)
-        y = numpy.asarray([y[0][i] for i in range(self.ny*self.nx)])
+        y = numpy.asarray([y[0][i] for i in range(self.ny * self.nx)])
         y.shape = (self.ny, self.nx)
 
         # mask out invalid values
@@ -983,53 +968,51 @@ class Gridgen(CGrid):
         super(Gridgen, self).__init__(x, y)
 
 
-
 def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
     """ Possibly converts centroids to nodes """
     Mp, Lp = xr.shape
-    x = empty((Mp+1, Lp+1), dtype='d')
-    y = empty((Mp+1, Lp+1), dtype='d')
-    x[1:-1, 1:-1] = 0.25*(xr[1:,1:]+xr[1:,:-1]+xr[:-1,1:]+xr[:-1,:-1])
-    y[1:-1, 1:-1] = 0.25*(yr[1:,1:]+yr[1:,:-1]+yr[:-1,1:]+yr[:-1,:-1])
+    x = empty((Mp + 1, Lp + 1), dtype='d')
+    y = empty((Mp + 1, Lp + 1), dtype='d')
+    x[1:-1, 1:-1] = 0.25 * (xr[1:, 1:] + xr[1:, :-1] + xr[:-1, 1:] + xr[:-1, :-1])
+    y[1:-1, 1:-1] = 0.25 * (yr[1:, 1:] + yr[1:, :-1] + yr[:-1, 1:] + yr[:-1, :-1])
 
     # east side
-    theta = 0.5*(ang[:-1,-1]+ang[1:,-1])
-    dx = 0.5*(1.0/pm[:-1,-1]+1.0/pm[1:,-1])
-    dy = 0.5*(1.0/pn[:-1,-1]+1.0/pn[1:,-1])
-    x[1:-1,-1] = x[1:-1,-2] + dx*numpy.cos(theta)
-    y[1:-1,-1] = y[1:-1,-2] + dx*numpy.sin(theta)
+    theta = 0.5 * (ang[:-1, -1] + ang[1:, -1])
+    dx = 0.5 * (1.0 / pm[:-1, -1] + 1.0 / pm[1:, -1])
+    dy = 0.5 * (1.0 / pn[:-1, -1] + 1.0 / pn[1:, -1])
+    x[1:-1, -1] = x[1:-1, -2] + dx * numpy.cos(theta)
+    y[1:-1, -1] = y[1:-1, -2] + dx * numpy.sin(theta)
 
     # west side
-    theta = 0.5*(ang[:-1,0]+ang[1:,0])
-    dx = 0.5*(1.0/pm[:-1,0]+1.0/pm[1:,0])
-    dy = 0.5*(1.0/pn[:-1,0]+1.0/pn[1:,0])
-    x[1:-1,0] = x[1:-1,1] - dx*numpy.cos(theta)
-    y[1:-1,0] = y[1:-1,1] - dx*numpy.sin(theta)
+    theta = 0.5 * (ang[:-1, 0] + ang[1:, 0])
+    dx = 0.5 * (1.0 / pm[:-1, 0] + 1.0 / pm[1:, 0])
+    dy = 0.5 * (1.0 / pn[:-1, 0] + 1.0 / pn[1:, 0])
+    x[1:-1, 0] = x[1:-1, 1] - dx * numpy.cos(theta)
+    y[1:-1, 0] = y[1:-1, 1] - dx * numpy.sin(theta)
 
     # north side
-    theta = 0.5*(ang[-1,:-1]+ang[-1,1:])
-    dx = 0.5*(1.0/pm[-1,:-1]+1.0/pm[-1,1:])
-    dy = 0.5*(1.0/pn[-1,:-1]+1.0/pn[-1,1:])
-    x[-1,1:-1] = x[-2,1:-1] - dy*numpy.sin(theta)
-    y[-1,1:-1] = y[-2,1:-1] + dy*numpy.cos(theta)
+    theta = 0.5 * (ang[-1, :-1] + ang[-1, 1:])
+    dx = 0.5 * (1.0 / pm[-1, :-1] + 1.0 / pm[-1, 1:])
+    dy = 0.5 * (1.0 / pn[-1, :-1] + 1.0 / pn[-1, 1:])
+    x[-1, 1:-1] = x[-2, 1:-1] - dy * numpy.sin(theta)
+    y[-1, 1:-1] = y[-2, 1:-1] + dy * numpy.cos(theta)
 
     # here we are now going to the south side..
-    theta = 0.5*(ang[0,:-1]+ang[0,1:])
-    dx = 0.5*(1.0/pm[0,:-1]+1.0/pm[0,1:])
-    dy = 0.5*(1.0/pn[0,:-1]+1.0/pn[0,1:])
-    x[0,1:-1] = x[1,1:-1] + dy*numpy.sin(theta)
-    y[0,1:-1] = y[1,1:-1] - dy*numpy.cos(theta)
+    theta = 0.5 * (ang[0, :-1] + ang[0, 1:])
+    dx = 0.5 * (1.0 / pm[0, :-1] + 1.0 / pm[0, 1:])
+    dy = 0.5 * (1.0 / pn[0, :-1] + 1.0 / pn[0, 1:])
+    x[0, 1:-1] = x[1, 1:-1] + dy * numpy.sin(theta)
+    y[0, 1:-1] = y[1, 1:-1] - dy * numpy.cos(theta)
 
-    #Corners
-    x[0,0] = 4.0*xr[0,0]-x[1,0]-x[0,1]-x[1,1]
-    x[-1,0] = 4.0*xr[-1,0]-x[-2,0]-x[-1,1]-x[-2,1]
-    x[0,-1] = 4.0*xr[0,-1]-x[0,-2]-x[1,-1]-x[1,-2]
-    x[-1,-1] = 4.0*xr[-1,-1]-x[-2,-2]-x[-2,-1]-x[-1,-2]
+    x[0, 0] = 4.0 * xr[0, 0] - x[1, 0] - x[0, 1] - x[1, 1]
+    x[-1, 0] = 4.0 * xr[-1, 0] - x[-2, 0] - x[-1, 1] - x[-2, 1]
+    x[0, -1] = 4.0 * xr[0, -1] - x[0, -2] - x[1, -1] - x[1, -2]
+    x[-1, -1] = 4.0 * xr[-1, -1] - x[-2, -2] - x[-2, -1] - x[-1, -2]
 
-    y[0,0] = 4.0*yr[0,0]-y[1,0]-y[0,1]-y[1,1]
-    y[-1,0] = 4.0*yr[-1,0]-y[-2,0]-y[-1,1]-y[-2,1]
-    y[0,-1] = 4.0*yr[0,-1]-y[0,-2]-y[1,-1]-y[1,-2]
-    y[-1,-1] = 4.0*yr[-1,-1]-y[-2,-2]-y[-2,-1]-y[-1,-2]
+    y[0, 0] = 4.0 * yr[0, 0] - y[1, 0] - y[0, 1] - y[1, 1]
+    y[-1, 0] = 4.0 * yr[-1, 0] - y[-2, 0] - y[-1, 1] - y[-2, 1]
+    y[0, -1] = 4.0 * yr[0, -1] - y[0, -2] - y[1, -1] - y[1, -2]
+    y[-1, -1] = 4.0 * yr[-1, -1] - y[-2, -2] - y[-2, -1] - y[-1, -2]
 
     return x, y
 
@@ -1054,7 +1037,7 @@ def uvp_masks(rmask):  # pragma: no cover
     if rmask.ndim != 2:
         raise ValueError('rmask must be a 2D array')
 
-    if not numpy.all((rmask == 0) | (rmask ==1 )):
+    if not numpy.all((rmask == 0) | (rmask == 1)):
         raise ValueError('rmask array must contain only ones and zeros.')
 
     umask = rmask[:, :-1] * rmask[:, 1:]
@@ -1073,14 +1056,14 @@ if __name__ == '__main__':  # pragma: no cover
         proj = Basemap(projection='lcc',
                        resolution='i',
                        llcrnrlon=-72.0,
-                       llcrnrlat= 40.0,
+                       llcrnrlat=40.0,
                        urcrnrlon=-63.0,
                        urcrnrlat=47.0,
                        lat_0=43.0,
                        lon_0=-62.5)
 
         lon = (-71.977385177601761, -70.19173825913137,
-               -63.045075098584945,-64.70104074097425)
+               -63.045075098584945, -64.70104074097425)
         lat = (42.88215610827428, 41.056141745853786,
                44.456701607935841, 46.271758064353897)
         beta = [1.0, 1.0, 1.0, 1.0]

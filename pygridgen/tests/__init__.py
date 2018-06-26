@@ -4,7 +4,8 @@ import pytest
 
 import pygridgen
 
+
 def test(*args):
-    options = [resource_filename('pygridgen', 'tests')]
+    options = [resource_filename('pygridgen', '')]
     options.extend(list(args))
     return pytest.main(options)

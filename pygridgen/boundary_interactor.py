@@ -1,5 +1,3 @@
-__docformat__ = "restructuredtext en"
-
 import os
 try:
     import cPickle as pickle
@@ -16,6 +14,9 @@ from matplotlib.lines import Line2D
 from matplotlib.mlab import dist_point_to_segment
 
 from .grid import Gridgen
+
+
+__docformat__ = "restructuredtext en"
 
 
 class BoundaryInteractor(object):  # pragma: no cover
@@ -71,22 +72,22 @@ class BoundaryInteractor(object):  # pragma: no cover
     def _update_beta_lines(self):
         """Update m/pline by finding the points where self.beta== -/+ 1"""
         x, y = zip(*self._poly.xy)
-        num_points = len(x)-1  # the first and last point are repeated
+        num_points = len(x) - 1  # the first and last point are repeated
 
-        xp = [x[n] for n in range(num_points) if self.beta[n]==1]
-        yp = [y[n] for n in range(num_points) if self.beta[n]==1]
+        xp = [x[n] for n in range(num_points) if self.beta[n] == 1]
+        yp = [y[n] for n in range(num_points) if self.beta[n] == 1]
         self._pline.set_data(xp, yp)
 
-        xm = [x[n] for n in range(num_points) if self.beta[n]==-1]
-        ym = [y[n] for n in range(num_points) if self.beta[n]==-1]
+        xm = [x[n] for n in range(num_points) if self.beta[n] == -1]
+        ym = [y[n] for n in range(num_points) if self.beta[n] == -1]
         self._mline.set_data(xm, ym)
 
-        xz = [x[n] for n in range(num_points) if self.beta[n]==0]
-        yz = [y[n] for n in range(num_points) if self.beta[n]==0]
+        xz = [x[n] for n in range(num_points) if self.beta[n] == 0]
+        yz = [y[n] for n in range(num_points) if self.beta[n] == 0]
         self._zline.set_data(xz, yz)
 
-        if len(x)-1 < self.gridgen_options['ul_idx']:
-            self.gridgen_options['ul_idx'] = len(x)-1
+        if len(x) - 1 < self.gridgen_options['ul_idx']:
+            self.gridgen_options['ul_idx'] = len(x) - 1
         xs = x[self.gridgen_options['ul_idx']]
         ys = y[self.gridgen_options['ul_idx']]
         self._sline.set_data(xs, ys)
@@ -122,11 +123,11 @@ class BoundaryInteractor(object):  # pragma: no cover
 
             # display coords
             xt, yt = self._poly.get_transform().numerix_x_y(x, y)
-            d = numpy.sqrt((xt-event.x)**2 + (yt-event.y)**2)
+            d = numpy.sqrt((xt - event.x)**2 + (yt - event.y)**2)
             indseq = numpy.nonzero(numpy.equal(d, numpy.amin(d)))
             ind = indseq[0]
 
-            if d[ind]>=self._epsilon:
+            if d[ind] >= self._epsilon:
                 ind = None
 
             return ind
@@ -135,11 +136,11 @@ class BoundaryInteractor(object):  # pragma: no cover
             xy = numpy.asarray(self._poly.xy)
             xyt = self._poly.get_transform().transform(xy)
             xt, yt = xyt[:, 0], xyt[:, 1]
-            d = numpy.sqrt((xt-event.x)**2 + (yt-event.y)**2)
+            d = numpy.sqrt((xt - event.x)**2 + (yt - event.y)**2)
             indseq = numpy.nonzero(numpy.equal(d, numpy.amin(d)))[0]
             ind = indseq[0]
 
-            if d[ind]>=self._epsilon:
+            if d[ind] >= self._epsilon:
                 ind = None
 
             return ind
@@ -147,77 +148,82 @@ class BoundaryInteractor(object):  # pragma: no cover
     def _button_press_callback(self, event):
         'whenever a mouse button is pressed'
         # if not self._showverts: return
-        if event.inaxes==None: return
-        if event.button != 1: return
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+
         self._ind = self._get_ind_under_point(event)
 
     def _button_release_callback(self, event):
         'whenever a mouse button is released'
         # if not self._showverts: return
-        if event.button != 1: return
+        if event.button != 1:
+            return
+
         self._ind = None
 
     def _key_press_callback(self, event):
         'whenever a key is pressed'
-        if not event.inaxes: return
-        if event.key=='shift': return
+        if not event.inaxes:
+            return
+        if event.key == 'shift':
+            return
 
-        if event.key=='t':
+        if event.key == 't':
             self._showbetas = not self._showbetas
             self._line.set_visible(self._showbetas)
             self._pline.set_visible(self._showbetas)
             self._mline.set_visible(self._showbetas)
             self._zline.set_visible(self._showbetas)
             self._sline.set_visible(self._showbetas)
-        elif event.key=='d':
+        elif event.key == 'd':
             ind = self._get_ind_under_point(event)
             if ind is not None:
-                self._poly.xy = [tup for i,tup in enumerate(self._poly.xy) \
-                                 if i!=ind]
+                self._poly.xy = [tup for i, tup in enumerate(self._poly.xy) if i != ind]
                 self._line.set_data(zip(*self._poly.xy))
-                self.beta = [beta for i,beta in enumerate(self.beta) \
-                             if i!=ind]
-        elif event.key=='p':
+                self.beta = [beta for i, beta in enumerate(self.beta) if i != ind]
+        elif event.key == 'p':
             ind = self._get_ind_under_point(event)
             if ind is not None:
                 self.beta[ind] = 1.0
-        elif event.key=='m':
+        elif event.key == 'm':
             ind = self._get_ind_under_point(event)
             if ind is not None:
                 self.beta[ind] = -1.0
-        elif event.key=='z':
+        elif event.key == 'z':
             ind = self._get_ind_under_point(event)
             if ind is not None:
                 self.beta[ind] = 0.0
-        elif event.key=='s':
+        elif event.key == 's':
             ind = self._get_ind_under_point(event)
             if ind is not None:
                 self.gridgen_options['ul_idx'] = ind
-        elif event.key=='i':
+        elif event.key == 'i':
             xys = self._poly.get_transform().transform(self._poly.xy)
-            p = event.x, event.y # display coords
-            for i in range(len(xys)-1):
+            p = event.x, event.y  # display coords
+            for i in range(len(xys) - 1):
                 s0 = xys[i]
-                s1 = xys[i+1]
+                s1 = xys[i + 1]
                 d = dist_point_to_segment(p, s0, s1)
-                if d<=self._epsilon:
+                if d <= self._epsilon:
                     self._poly.xy = numpy.array(
-                        list(self._poly.xy[:i+1]) +
+                        list(self._poly.xy[:i + 1]) +
                         [(event.xdata, event.ydata)] +
-                        list(self._poly.xy[i+1:]))
+                        list(self._poly.xy[i + 1:]))
                     self._line.set_data(zip(*self._poly.xy))
-                    self.beta.insert(i+1, 0)
+                    self.beta.insert(i + 1, 0)
                     break
             s0 = xys[-1]
             s1 = xys[0]
             d = dist_point_to_segment(p, s0, s1)
-            if d<=self._epsilon:
+            if d <= self._epsilon:
                 self._poly.xy = numpy.array(
                     list(self._poly.xy) +
                     [(event.xdata, event.ydata)])
                 self._line.set_data(zip(*self._poly.xy))
                 self.beta.append(0)
-        elif event.key=='G' or event.key == '1':
+        elif event.key == 'G' or event.key == '1':
             options = deepcopy(self.gridgen_options)
             shp = options.pop('shp')
             if self.proj is None:
@@ -231,7 +237,7 @@ class BoundaryInteractor(object):  # pragma: no cover
                                    proj=self.proj, **options)
             self.remove_grid()
             self._showgrid = True
-            gridlineprops = {'linestyle':'-', 'color':'k', 'lw':0.2}
+            gridlineprops = {'linestyle': '-', 'color': 'k', 'lw': 0.2}
             self._gridlines = []
             for line in self._ax._get_lines(*(self.grd.x, self.grd.y),
                                             **gridlineprops):
@@ -241,7 +247,7 @@ class BoundaryInteractor(object):  # pragma: no cover
                                             **gridlineprops):
                 self._ax.add_line(line)
                 self._gridlines.append(line)
-        elif event.key=='T' or event.key == '2':
+        elif event.key == 'T' or event.key == '2':
             self._showgrid = not self._showgrid
             if hasattr(self, '_gridlines'):
                 for line in self._gridlines:
@@ -254,10 +260,16 @@ class BoundaryInteractor(object):  # pragma: no cover
     def _motion_notify_callback(self, event):
         'on mouse movement'
         # if not self._showverts: return
-        if self._ind is None: return
-        if event.inaxes is None: return
-        if event.button != 1: return
-        x,y = event.xdata, event.ydata
+        if self._ind is None:
+            return
+
+        if event.inaxes is None:
+            return
+
+        if event.button != 1:
+            return
+
+        x, y = event.xdata, event.ydata
         self._poly.xy[self._ind] = x, y
         if self._ind == 0:
             self._poly.xy[-1] = x, y
@@ -274,7 +286,6 @@ class BoundaryInteractor(object):  # pragma: no cover
         self._ax.draw_artist(self._sline)
         self._ax.draw_artist(self._line)
         self._canvas.blit(self._ax.bbox)
-
 
     def __init__(self, x, y=None, beta=None, ax=None, proj=None,
                  **gridgen_options):
@@ -301,7 +312,8 @@ class BoundaryInteractor(object):  # pragma: no cover
         for key, value in iter(gridgen_options.items()):
             self.gridgen_options[key] = gridgen_options[key]
 
-        x = list(x); y = list(y)
+        x = list(x)
+        y = list(y)
         if len(x) != len(y):
             raise ValueError('arrays must be equal length')
 
@@ -324,9 +336,9 @@ class BoundaryInteractor(object):  # pragma: no cover
         # Link in the lines that will show the beta values
         # pline for positive turns, mline for negative (minus) turns
         # otherwize zline (zero) for straight sections
-        self._pline = Line2D([], [], marker='^', ms=12, mfc='g',\
+        self._pline = Line2D([], [], marker='^', ms=12, mfc='g',
                              animated=True, lw=0)
-        self._mline = Line2D([], [], marker='v', ms=12, mfc='r',\
+        self._mline = Line2D([], [], marker='v', ms=12, mfc='r',
                              animated=True, lw=0)
         self._zline = Line2D([], [], marker='o', mfc='k', animated=True, lw=0)
         self._sline = Line2D([], [], marker='s', mfc='k', animated=True, lw=0)
@@ -339,15 +351,15 @@ class BoundaryInteractor(object):  # pragma: no cover
 
         # get the canvas and connect the callback events
         cid = self._poly.add_callback(self._poly_changed)
-        self._ind = None # the active vert
+        self._ind = None  # the active vert
 
         self._canvas.mpl_connect('draw_event', self._draw_callback)
-        self._canvas.mpl_connect('button_press_event',\
+        self._canvas.mpl_connect('button_press_event',
                                  self._button_press_callback)
         self._canvas.mpl_connect('key_press_event', self._key_press_callback)
-        self._canvas.mpl_connect('button_release_event',\
+        self._canvas.mpl_connect('button_release_event',
                                  self._button_release_callback)
-        self._canvas.mpl_connect('motion_notify_event',\
+        self._canvas.mpl_connect('motion_notify_event',
                                  self._motion_notify_callback)
 
     def save_bry(self, bry_file='bry.pickle'):
@@ -373,11 +385,19 @@ class BoundaryInteractor(object):  # pragma: no cover
         pickle.dump(self.grd, f, protocol=-1)
         f.close()
 
-    def _get_verts(self): return zip(self.x, self.y)
+    def _get_verts(self):
+        return zip(self.x, self.y)
+
     verts = property(_get_verts)
-    def get_xdata(self): return self._line.get_xdata()
+
+    def get_xdata(self):
+        return self._line.get_xdata()
+
     x = property(get_xdata)
-    def get_ydata(self): return self._line.get_ydata()
+
+    def get_ydata(self):
+        return self._line.get_ydata()
+
     y = property(get_ydata)
 
 
@@ -391,8 +411,8 @@ class edit_mask_mesh(object):  # pragma: no cover
 
     def _on_click(self, event):
         x, y = event.xdata, event.ydata
-        if event.button==1 and event.inaxes is not None and self._clicking == True:
-            d = (x-self._xc)**2 + (y-self._yc)**2
+        if event.button == 1 and event.inaxes is not None and self._clicking:
+            d = (x - self._xc)**2 + (y - self._yc)**2
             if isinstance(self.xv, numpy.ma.MaskedArray):
                 idx = numpy.argwhere(d[~self._xc.mask] == d.min())
             else:
@@ -408,7 +428,7 @@ class edit_mask_mesh(object):  # pragma: no cover
         if xv.shape != yv.shape:
             raise ValueError('xv and yv must have the same shape')
         for dx, dq in zip(xv.shape, mask.shape):
-             if dx != dq+1:
+            if dx != (dq + 1):
                 raise ValueError('xv and yv must be cell verticies '
                                  '(i.e., one cell bigger in each dimension)')
 
@@ -423,8 +443,8 @@ class edit_mask_mesh(object):  # pragma: no cover
         cm = pyplot.matplotlib.colors.ListedColormap([land_color, sea_color],
                                                  name='land/sea')
         self._pc = pyplot.pcolor(xv, yv, mask, cmap=cm, vmin=0, vmax=1, **kwargs)
-        self._xc = 0.25*(xv[1:,1:]+xv[1:,:-1]+xv[:-1,1:]+xv[:-1,:-1])
-        self._yc = 0.25*(yv[1:,1:]+yv[1:,:-1]+yv[:-1,1:]+yv[:-1,:-1])
+        self._xc = 0.25 * (xv[1:, 1:] + xv[1:, :-1] + xv[:-1, 1:] + xv[:-1, :-1])
+        self._yc = 0.25 * (yv[1:, 1:] + yv[1:, :-1] + yv[:-1, 1:] + yv[:-1, :-1])
 
         if isinstance(self.xv, numpy.ma.MaskedArray):
             self._mask = mask[~self._xc.mask]
