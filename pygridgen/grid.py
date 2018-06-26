@@ -141,21 +141,19 @@ class Focus(object):
 
     Examples
     --------
-    >>> foc = pygridgen.Focus()
+    >>> foc = Focus()
     >>> foc.add_focus(0.2, axis='x', factor=3.0, extent=0.20)
     >>> foc.add_focus(0.6, axis='y', factor=5.0, extent=0.35)
-
     >>> x, y = numpy.mgrid[0:1:3j, 0:1:3j]
     >>> xf, yf = foc(x, y)
-
     >>> print(xf)
-    [[ 0.          0.          0.        ]
-     [ 0.36594617  0.36594617  0.36594617]
-     [ 1.          1.          1.        ]]
+    [[0.         0.         0.        ]
+     [0.36587759 0.36587759 0.36587759]
+     [1.         1.         1.        ]]
     >>> print(yf)
-    [[ 0.          0.62479833  1.        ]
-     [ 0.          0.62479833  1.        ]
-     [ 0.          0.62479833  1.        ]]
+    [[0.         0.62484147 1.        ]
+     [0.         0.62484147 1.        ]
+     [0.         0.62484147 1.        ]]
 
     """
 
@@ -232,12 +230,12 @@ class CGrid(object):
      [4.5 4.5 4.5 4.5 4.5 4.5 4.5]
      [5.5 5.5 5.5 5.5 5.5 5.5 5.5]]
     >>> print(grd.mask)
-    [[ 0.  0.  0.  1.  1.  1.  1.]
-     [ 0.  0.  0.  1.  1.  1.  1.]
-     [ 0.  0.  0.  1.  1.  1.  1.]
-     [ 1.  1.  1.  1.  1.  1.  1.]
-     [ 1.  1.  1.  1.  1.  1.  1.]
-     [ 1.  1.  1.  1.  1.  1.  1.]]
+    [[0. 0. 0. 1. 1. 1. 1.]
+     [0. 0. 0. 1. 1. 1. 1.]
+     [0. 0. 0. 1. 1. 1. 1.]
+     [1. 1. 1. 1. 1. 1. 1.]
+     [1. 1. 1. 1. 1. 1. 1.]
+     [1. 1. 1. 1. 1. 1. 1.]]
 
     """
 
@@ -641,6 +639,7 @@ class CGrid_geo(CGrid):
         if self.use_gcdist:
             az1, az2, dx = self.geod.inv(self.lon[:, 1:], self.lat[:, 1:],
                                          self.lon[:, :-1], self.lat[:, :-1])
+            return 0.5 * (dx[1:, :] + dx[:-1, :])
         else:
             x_temp = 0.5 * (self.x_vert[1:, :] + self.x_vert[:-1, :])
             y_temp = 0.5 * (self.y_vert[1:, :] + self.y_vert[:-1, :])
@@ -750,14 +749,14 @@ class Gridgen(CGrid):
     >>> beta = [1, 1, 0, 1, 1]
     >>> # define the focus
     >>> focus = pygridgen.grid.Focus()
-    >>> focus.add_focus_x(xo=0.5, factor=3, Rx=0.2)
-    >>> focus.add_focus_y(yo=0.75, factor=5, Ry=0.1)
+    >>> focus.add_focus(0.5, 'x', factor=3, extent=0.2)
+    >>> focus.add_focus(0.75, 'y', factor=5, extent=0.1)
     >>> # create the grid
     >>> grid = pygridgen.Gridgen(x, y, beta, shape=(20, 20), focus=focus)
     >>> # plot the grid
     >>> fig, ax = plt.subplots()
-    >>> ax.plot(x, y, 'k-')
-    >>> ax.plot(grid.x, grid.y, 'b.')
+    >>> bound = ax.plot(x, y, 'k-')
+    >>> nodes = ax.plot(grid.x, grid.y, 'b.')
 
     """
 
@@ -781,8 +780,6 @@ class Gridgen(CGrid):
             except OSError:
                 pass
             else:
-                print("libgridgen: attempted names/locations")
-                print(libgridgen_paths)
                 raise OSError('Failed to load libgridgen.')
 
         # initialize/set types of critical variables
@@ -1004,6 +1001,7 @@ def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
     x[0, 1:-1] = x[1, 1:-1] + dy * numpy.sin(theta)
     y[0, 1:-1] = y[1, 1:-1] - dy * numpy.cos(theta)
 
+    # corners
     x[0, 0] = 4.0 * xr[0, 0] - x[1, 0] - x[0, 1] - x[1, 1]
     x[-1, 0] = 4.0 * xr[-1, 0] - x[-2, 0] - x[-1, 1] - x[-2, 1]
     x[0, -1] = 4.0 * xr[0, -1] - x[0, -2] - x[1, -1] - x[1, -2]
