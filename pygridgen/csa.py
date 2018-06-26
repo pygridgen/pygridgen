@@ -8,7 +8,7 @@ import numpy
 from matplotlib import pyplot
 
 
-class csa(object):
+class CSA(object):
     """
     Cubic spline approximation for re-gridding 2D data sets
 
@@ -45,16 +45,14 @@ class csa(object):
 
     Examples
     --------
-    >>> import csa
+    >>> from pygridgen import csa
     >>> xin = numpy.random.randn(10000)
     >>> yin = numpy.random.randn(10000)
     >>> zin = numpy.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )
     >>> xout, yout = numpy.mgrid[-3:3:10j, -3:3:10j]
     >>> csa_interp = csa.CSA(xin, yin, zin)
     >>> zout = csa_interp(xout, yout)
-    >>> csa_interp.zin =  numpy.cos( xin + yin**2 )
-    >>> zout = csa_interp
-    >>> print(zout)
+    >>> img = pyplot.imshow(zout)
 
     """
 

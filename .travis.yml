@@ -5,15 +5,19 @@ matrix:
     - python: 2.7
       env:
         - COVERAGE=false
+        - ARGS=""
     - python: 3.4
       env:
         - COVERAGE=false
+        - ARGS=""
     - python: 3.5
       env:
         - COVERAGE=false
+        - ARGS=""
     - python: 3.6
       env:
         - COVERAGE=true
+        - ARGS="--strict"
 
 before_install:
   - sudo apt-get update -yq
@@ -30,13 +34,8 @@ install:
   - pip install codecov
   - pip install .
 
-# before_script:
-#   - ls -al /usr/local/lib
-#   - ls -al /usr/local/include
-#   - conda list
-
 script:
-   - coverage run --source pygridgen check_pygridgen.py --verbose --pep8
+  - coverage run --source pygridtools check_pygridtools.py {ARGS}
 
 after_success:
   - if [ ${COVERAGE} = true ]; then
