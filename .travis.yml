@@ -31,7 +31,7 @@ before_install:
 install:
   - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION nomkl gridgen numpy matplotlib pyproj pytest pytest-cov pytest-pep8 coverage docopt requests pyyaml
   - source activate test
-  - pip install codecov
+  - pip install coveralls
   - pip install -e .
 
 script:
