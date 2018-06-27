@@ -24,8 +24,8 @@ Getting miniconda and creating an environment
     $ chmod +x miniconda.sh
     $ ./miniconda.sh -b -p $HOME/miniconda
     $ export PATH=$HOME/miniconda/bin:$PATH
-    $ conda update --yes conda
-    $ conda create --name=grid python=3.5 pip nose matplotlib numpy --yes
+    $ conda update conda
+    $ conda create --name=grid python=3.6 pip nose matplotlib numpy --channel=conda-forge
     $ source activate grid
 
 Dealing with projected data:
@@ -33,7 +33,7 @@ Dealing with projected data:
 
 ::
 
-    $ conda install --channel=IOOS pyproj --yes
+    $ conda install pyproj --channel=conda-forge
 
 Cloning dependencies from github
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -47,7 +47,7 @@ Cloning dependencies from github
     $ git clone https://github.com/sakov/gridutils-c.git
     $ git clone https://github.com/sakov/gridgen-c.git
     $ # python library
-    $ git clone https://github.com/phobson/pygridgen.git
+    $ git clone https://github.com/pygridgen/pygridgen.git
 
 Building C/C++ dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

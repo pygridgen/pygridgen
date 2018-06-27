@@ -1,10 +1,7 @@
-.. include:: ../readme.rst
-
-.. toctree::
-   :maxdepth: 2
+.. include:: ../README.rst
 
 Installation
-------------
+============
 
 .. toctree::
    :maxdepth: 1
@@ -14,7 +11,7 @@ Installation
    install/build_osx.rst
 
 Tutorials
----------
+=========
 
 .. toctree::
    :maxdepth: 2
@@ -23,7 +20,7 @@ Tutorials
    tutorial/gridgen_examples
 
 API Reference
--------------
+=============
 
 .. toctree::
    :maxdepth: 2

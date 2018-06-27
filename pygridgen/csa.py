@@ -56,14 +56,14 @@ class CSA(object):
 
     """
 
-    libcsa_paths = [
+    _libcsa_paths = [
         ('libcsa.so', os.path.join(sys.prefix, 'lib')),
         ('libcsa', os.path.join(sys.prefix, 'lib')),
         ('libcsa.so', '/usr/local/lib'),
         ('libcsa', '/usr/local/lib'),
     ]
 
-    for name, path in libcsa_paths:
+    for name, path in _libcsa_paths:
         try:
             _csa = numpy.ctypeslib.load_library(name, path)
             break
