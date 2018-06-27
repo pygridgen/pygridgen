@@ -1,0 +1,438 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>pygridgen.csa &mdash; pygridgen 0.2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> pygridgen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install/conda.html">Installation via conda</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../install/build_linux.html">Linux: Building from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../install/build_osx.html">Mac OS X: building from source</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/basics.html">Basic grid generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial/gridgen_examples.html">Examples from the gridgen-c library</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/grid.html">The <cite>pygridgen</cite> API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/csa.html">The <cite>csa</cite> API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pygridgen</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>pygridgen.csa</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for pygridgen.csa</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">site</span>
+<span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="k">import</span> <span class="n">resource_filename</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">pyplot</span>
+
+
+<div class="viewcode-block" id="CSA"><a class="viewcode-back" href="../../api/csa.html#pygridgen.csa.CSA">[docs]</a><span class="k">class</span> <span class="nc">CSA</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cubic spline approximation for re-gridding 2D data sets</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xin : array-like</span>
+<span class="sd">        an array of x data point locations</span>
+<span class="sd">    yin : array-like</span>
+<span class="sd">        an array of z data point locations</span>
+<span class="sd">    zin : array-like</span>
+<span class="sd">        an array of z data point locations</span>
+<span class="sd">    sigma : array-like or None</span>
+<span class="sd">        an array of errors for zin (standard deviation)</span>
+<span class="sd">        None for no error (default)</span>
+<span class="sd">    k : integer</span>
+<span class="sd">        Set the spline sensitivity (default = 140).</span>
+<span class="sd">        Reduce to get smoother results.</span>
+<span class="sd">    nppc : integer</span>
+<span class="sd">        Average number of points per cell (default = 5)</span>
+<span class="sd">        Decrease to get smaller cells or increase to get larger cells</span>
+<span class="sd">    npmin : integer</span>
+<span class="sd">        Minimal number of points locally involved in spline</span>
+<span class="sd">        calculation (default = 3)</span>
+<span class="sd">    npmax : integer</span>
+<span class="sd">        Maximum number of points locally involved in spline</span>
+<span class="sd">        calculation (default = 40)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    csa_interp : object</span>
+<span class="sd">        This object can be called with arguments of x and y points to be</span>
+<span class="sd">        interpolated to.  The input data, zin, can be reset by overwriting</span>
+<span class="sd">        that object parameter.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from pygridgen import csa</span>
+<span class="sd">    &gt;&gt;&gt; xin = numpy.random.randn(10000)</span>
+<span class="sd">    &gt;&gt;&gt; yin = numpy.random.randn(10000)</span>
+<span class="sd">    &gt;&gt;&gt; zin = numpy.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )</span>
+<span class="sd">    &gt;&gt;&gt; xout, yout = numpy.mgrid[-3:3:10j, -3:3:10j]</span>
+<span class="sd">    &gt;&gt;&gt; csa_interp = csa.CSA(xin, yin, zin)</span>
+<span class="sd">    &gt;&gt;&gt; zout = csa_interp(xout, yout)</span>
+<span class="sd">    &gt;&gt;&gt; img = pyplot.imshow(zout)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_libcsa_paths</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;libcsa.so&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="s1">&#39;lib&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;libcsa&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="s1">&#39;lib&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;libcsa.so&#39;</span><span class="p">,</span> <span class="s1">&#39;/usr/local/lib&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;libcsa&#39;</span><span class="p">,</span> <span class="s1">&#39;/usr/local/lib&#39;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">_libcsa_paths</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_csa</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">load_library</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s1">&#39;Failed to load libgridgen.&#39;</span><span class="p">)</span>
+
+    <span class="n">_csa</span><span class="o">.</span><span class="n">csa_approximatepoints2</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xin</span><span class="p">,</span> <span class="n">yin</span><span class="p">,</span> <span class="n">zin</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">npmin</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">npmax</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">140</span><span class="p">,</span> <span class="n">nppc</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xin</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">yin</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">xin</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">yin</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;xin and yin must have the same number &#39;</span>
+                             <span class="s1">&#39;of elements&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_zin</span> <span class="o">=</span> <span class="n">zin</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">k</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nppc</span> <span class="o">=</span> <span class="n">nppc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npmin</span> <span class="o">=</span> <span class="n">npmin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">npmax</span> <span class="o">=</span> <span class="n">npmax</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Input values to be approximated &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zin</span>
+
+    <span class="nd">@zin</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">zin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">zin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">zin</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;zin must have the same number of elements as &#39;</span>
+                             <span class="s1">&#39;xin and yin&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_zin</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">):</span>
+        <span class="n">xout</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xout</span><span class="p">)</span>
+        <span class="n">yout</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">yout</span><span class="p">)</span>
+
+        <span class="n">nin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">nout</span> <span class="o">=</span> <span class="n">xout</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">)()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">nin</span><span class="p">)(</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="p">)))</span>
+
+        <span class="n">zout</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">zout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_csa</span><span class="o">.</span><span class="n">csa_approximatepoints2</span><span class="p">(</span>
+            <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="n">nin</span><span class="p">),</span>                         <span class="c1"># int nin</span>
+            <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">nin</span><span class="p">)(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="o">.</span><span class="n">flat</span><span class="p">),</span>   <span class="c1"># double xin[]</span>
+            <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">nin</span><span class="p">)(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">yin</span><span class="o">.</span><span class="n">flat</span><span class="p">),</span>   <span class="c1"># double yin[]</span>
+            <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">nin</span><span class="p">)(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_zin</span><span class="o">.</span><span class="n">flat</span><span class="p">),</span>  <span class="c1"># double zin[]</span>
+            <span class="n">sigma</span><span class="p">,</span>                                     <span class="c1"># double sigma[] or NULL</span>
+            <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="n">nout</span><span class="p">),</span>                        <span class="c1"># int nout</span>
+            <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">nout</span><span class="p">)(</span><span class="o">*</span><span class="n">xout</span><span class="o">.</span><span class="n">flat</span><span class="p">),</span>      <span class="c1"># double xout[]</span>
+            <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="n">nout</span><span class="p">)(</span><span class="o">*</span><span class="n">yout</span><span class="o">.</span><span class="n">flat</span><span class="p">),</span>      <span class="c1"># double yout[]</span>
+            <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npmin</span><span class="p">),</span>                  <span class="c1"># int npmin</span>
+            <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npmax</span><span class="p">),</span>                  <span class="c1"># int npmax</span>
+            <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">),</span>                      <span class="c1"># int k</span>
+            <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nppc</span><span class="p">)</span>                    <span class="c1"># int nppc</span>
+        <span class="p">)</span>
+
+        <span class="n">zout</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">zout</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nout</span><span class="p">)])</span>
+        <span class="n">zout</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">xout</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">zout</span><span class="p">),</span> <span class="n">zout</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return interpolated values of ``zin``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        xout, yout : array-like</span>
+<span class="sd">            Two-dimensional arrays of x/y coordinates at which ``zout``</span>
+<span class="sd">            should be estimated.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        zout : numpy ndarray</span>
+<span class="sd">            Interpolated z-values.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">xout</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xout</span><span class="p">)</span>
+        <span class="n">yout</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">yout</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_points</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CSA.plot"><a class="viewcode-back" href="../../api/csa.html#pygridgen.csa.CSA.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mesh_opts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scatter_opts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the input and output data set from the cubic split</span>
+<span class="sd">        approximation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        xout, yout : array-like</span>
+<span class="sd">            Two-dimensional arrays of x/y coordinates at which ``zout``</span>
+<span class="sd">            should be estimated.</span>
+<span class="sd">        ax : matplotlib Axes, optional</span>
+<span class="sd">            The axes on which the plot should be drawn. If not provided,</span>
+<span class="sd">            a new axes and figure will be created.</span>
+<span class="sd">        mesh_opts, scatter_opts : dict, optional</span>
+<span class="sd">            Dictionary of plotting options passed to matplotlib&#39;s</span>
+<span class="sd">            `pcolormesh` and `scatter` functions, respectively.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ax : matplotlib Axes.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">pyplot</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span>
+
+        <span class="k">if</span> <span class="n">mesh_opts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mesh_opts</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">scatter_opts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">scatter_opts</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">pyplot</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        <span class="n">zout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_points</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">zout</span><span class="p">,</span> <span class="o">**</span><span class="n">mesh_opts</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">yin</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zin</span><span class="p">,</span> <span class="o">**</span><span class="n">scatter_opts</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">fig</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">xin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+    <span class="n">yin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+    <span class="n">zin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">xin</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">yin</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">xin</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">yin</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xin</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; ### Set up input data points&#39;</span><span class="p">)</span>
+
+    <span class="n">xout</span><span class="p">,</span> <span class="n">yout</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:</span><span class="mi">3</span><span class="p">:</span><span class="mi">100</span><span class="n">j</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">:</span><span class="mi">3</span><span class="p">:</span><span class="mi">100</span><span class="n">j</span><span class="p">]</span>
+
+    <span class="n">csa_interp</span> <span class="o">=</span> <span class="n">CSA</span><span class="p">(</span><span class="n">xin</span><span class="p">,</span> <span class="n">yin</span><span class="p">,</span> <span class="n">zin</span><span class="p">)</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">pyplot</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">csa_interp</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">,</span> <span class="n">mesh_opts</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">vmin</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="n">scatter_opts</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">vmin</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">))</span>
+
+    <span class="n">csa_interp</span><span class="o">.</span><span class="n">zin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">xin</span> <span class="o">+</span> <span class="n">yin</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">csa_interp</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xout</span><span class="p">,</span> <span class="n">yout</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">,</span> <span class="n">mesh_opts</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">vmin</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="n">scatter_opts</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">vmin</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">))</span>
+
+    <span class="n">pyplot</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Robert Hetland.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
