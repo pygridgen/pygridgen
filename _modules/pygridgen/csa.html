@@ -202,14 +202,20 @@
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; from pygridgen import csa</span>
-<span class="sd">    &gt;&gt;&gt; xin = numpy.random.randn(10000)</span>
-<span class="sd">    &gt;&gt;&gt; yin = numpy.random.randn(10000)</span>
-<span class="sd">    &gt;&gt;&gt; zin = numpy.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )</span>
-<span class="sd">    &gt;&gt;&gt; xout, yout = numpy.mgrid[-3:3:10j, -3:3:10j]</span>
-<span class="sd">    &gt;&gt;&gt; csa_interp = csa.CSA(xin, yin, zin)</span>
-<span class="sd">    &gt;&gt;&gt; zout = csa_interp(xout, yout)</span>
-<span class="sd">    &gt;&gt;&gt; img = pyplot.imshow(zout)</span>
+
+<span class="sd">    .. plot ::</span>
+<span class="sd">       :include-source:</span>
+
+<span class="sd">        import numpy as np</span>
+<span class="sd">        import matplotlib.pyplot as plt</span>
+<span class="sd">        from pygridgen import csa</span>
+<span class="sd">        xin = np.random.randn(10000)</span>
+<span class="sd">        yin = np.random.randn(10000)</span>
+<span class="sd">        zin = np.sin( xin**2 + yin**2 ) / (xin**2 + yin**2 )</span>
+<span class="sd">        xout, yout = np.mgrid[-3:3:10j, -3:3:10j]</span>
+<span class="sd">        csa_interp = csa.CSA(xin, yin, zin)</span>
+<span class="sd">        zout = csa_interp(xout, yout)</span>
+<span class="sd">        img = plt.imshow(zout)</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
