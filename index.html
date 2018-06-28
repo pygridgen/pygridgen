@@ -183,16 +183,26 @@
 <p>A Python interface to Pavel Sakov’s <a class="reference external" href="https://github.com/sakov/gridgen-c">gridgen</a> library</p>
 <p>The full documentation for this for library is <a class="reference external" href="https://pygridgen.github.io/pygridgen">here</a>.</p>
 <p>For more detailed documentation on grid generation, manipulation, and visualization,
-see the documentation for <a class="reference external" href="https://pygridgen.github.io/pygridtools">pygridtools</a>.</p>
+see the documentation for <a class="reference external" href="https://geosyntec.github.io/pygridtools">pygridtools</a>.</p>
 <div class="section" id="credits">
 <h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline">¶</a></h2>
 <p>This fork of <code class="docutils literal notranslate"><span class="pre">pygridgen</span></code> stands on the very tall shoulders of <a class="reference external" href="https://github.com/hetland">Robert Hetland</a> of Texas A&amp;M University.
-Many thanks to him, <a class="reference external" href="https://github.com/rsignell-usgs">Richard Signell</a>, <a class="reference external" href="https://github.com/ocefpaf">Fillipe Fernandes</a>, and all of the other contributors.</p>
+Many thanks to him, <a class="reference external" href="https://github.com/rsignell-usgs">Richard Signell</a>, <a class="reference external" href="https://github.com/ocefpaf">Filipe Fernandes</a>, and all of the other contributors.</p>
 </div>
-<div class="section" id="python-dependencies">
-<h2>Python Dependencies<a class="headerlink" href="#python-dependencies" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="basics">
-<h3>Basics<a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="c-libraries">
+<h3>C Libraries<a class="headerlink" href="#c-libraries" title="Permalink to this headline">¶</a></h3>
+<p>The following dependencies are all available via conda-forge for Linux and Mac OS:</p>
+<ul class="simple">
+<li><a class="reference external" href="https://github.com/conda-forge/nn-feedstock">nn feedstock</a></li>
+<li><a class="reference external" href="https://github.com/conda-forge/csa-feedstock">csa feedstock</a></li>
+<li><a class="reference external" href="https://github.com/conda-forge/gridgen-feedstock">gridgen feedstock</a></li>
+<li><a class="reference external" href="https://github.com/conda-forge/gridutils-feedstock">gridutils feedstock</a></li>
+</ul>
+</div>
+<div class="section" id="python">
+<h3>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h3>
 <p>Provided that all of the shared C libraries are installed, the remaining python depedencies are the following:</p>
 <ul class="simple">
 <li>numpy</li>
@@ -203,7 +213,21 @@ Many thanks to him, <a class="reference external" href="https://github.com/rsign
 <div class="section" id="testing">
 <h3>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h3>
 <p>Tests are written using the <cite>pytest</cite> package.
-From the source tree, run them simply with by invoking <code class="docutils literal notranslate"><span class="pre">pytest</span></code> in a terminal.</p>
+From the source tree, run them simply with by invoking <code class="docutils literal notranslate"><span class="pre">pytest</span></code> in a terminal.
+If you’re editing the source code, it helps to have <cite>pytest-pep8</cite> installed to check code style.</p>
+<p>Alternatively, from the source tree you can run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">check_pygridgen.py</span> <span class="pre">--strict</span></code> to run the units tests, style checker, and doctests.</p>
+</div>
+<div class="section" id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
+<p>Building the HTML documentation requires:</p>
+<ul class="simple">
+<li>sphinx</li>
+<li>sphinx_rtd_theme</li>
+<li>nbsphinx</li>
+<li>jupyter-notebook</li>
+<li>pandas</li>
+<li>seaborn</li>
+</ul>
 </div>
 </div>
 </div>
