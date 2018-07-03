@@ -74,7 +74,8 @@ Building the HTML documentation requires:
 
 * sphinx
 * sphinx_rtd_theme
-* nbsphinx
+* numpydoc
 * jupyter-notebook
+* nbsphinx
 * pandas
 * seaborn
