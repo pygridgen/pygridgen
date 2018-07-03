@@ -12,11 +12,11 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": true
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
+    "%matplotlib inline\n",
+    "\n",
     "import warnings\n",
     "warnings.simplefilter('ignore')\n",
     "\n",
@@ -25,28 +25,11 @@
     "import pandas\n",
     "import seaborn\n",
     "clear_bkgd = {'axes.facecolor':'none', 'figure.facecolor':'none'}\n",
-    "seaborn.set(style='ticks', context='notebook', rc=clear_bkgd)\n",
+    "seaborn.set(style='ticks', context='notebook', rc=clear_bkgd, color_codes=True)\n",
     "\n",
     "import pygridgen\n",
-    "%matplotlib inline\n",
     "\n",
-    "def plot_grid(grid, ax, leg_loc='lower left'):\n",
-    "    ax.plot(grid.x.flatten(), grid.y.flatten(), 'k.', label='Grid nodes', zorder=5)\n",
-    "    ax.set_aspect('equal')\n",
-    "    ax.plot(grid.xbry, grid.ybry, '-', color='0.5', zorder=0)\n",
-    "    pos = numpy.nonzero(grid.beta > 0)\n",
-    "    neg = numpy.nonzero(grid.beta < 0)\n",
-    "    \n",
-    "    ax.plot(x[pos], y[pos], 'go', label='Positive', zorder=2, alpha=0.5)\n",
-    "    ax.plot(x[neg], y[neg], 'rs', label='Negative', zorder=2, alpha=0.5)\n",
-    "    \n",
-    "    ax.legend(numpoints=1, loc=leg_loc)\n",
-    "    \n",
-    "def read_boundary(example):\n",
-    "    df = pandas.read_table(\"gg_examples/xy.{}\".format(example), sep='\\s+').fillna(0)\n",
-    "    x, y, beta = df['x'].values, df['y'].values, df['b'].values\n",
-    "    ul_idx = numpy.nonzero(df['ul'])[0][0]\n",
-    "    return x, y, beta, ul_idx"
+    "from dochelpers import read_boundary, plot_grid"
    ]
   },
   {
@@ -60,19 +43,18 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
-    "fig, axes = pyplot.subplots(figsize=(15, 7), ncols=2, \n",
+    "fig, axes = pyplot.subplots(figsize=(10, 8), ncols=2, nrows=2,\n",
     "                            sharex=True, sharey=True)\n",
     "\n",
-    "for n, ax in enumerate(axes, 1):\n",
+    "for n, (axrow, leg_loc) in enumerate(zip(axes, ('upper left', None)), 1):\n",
     "    x, y, beta, ul_idx = read_boundary(n)\n",
     "    grid = pygridgen.Gridgen(x, y, beta, ul_idx=ul_idx, shape=(40, 20))\n",
-    "    plot_grid(grid, ax=ax)\n",
-    "    ax.set_xlim(left=-1.25, right=2.50)"
+    "    plot_grid(grid, data_ax=axrow[0], cell_ax=axrow[1], leg_loc=leg_loc)\n",
+    "    \n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -85,16 +67,15 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "x, y, beta, ul_idx = read_boundary(0)\n",
     "grid = pygridgen.Gridgen(x, y, beta, ul_idx=ul_idx, shape=(90, 120))\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(10, 10))\n",
-    "plot_grid(grid, ax=ax)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(14, 7), ncols=2, sharey=True)\n",
+    "plot_grid(grid, data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper left')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -107,38 +88,47 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
-    "fig, axes = pyplot.subplots(figsize=(15, 7), ncols=2)\n",
-    "shapes = [(40, 125), (40, 80)]\n",
-    "for n, (shape, ax, leg_loc) in enumerate(zip(shapes, axes, ['right', 'lower left']), 3):\n",
-    "    x, y, beta, ul_idx = read_boundary(n)\n",
-    "    grid = pygridgen.Gridgen(x, y, beta, ul_idx=ul_idx, shape=(40, 125))\n",
-    "    plot_grid(grid, ax=ax, leg_loc=leg_loc)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 10), ncols=2, sharey=True)\n",
+    "x, y, beta, ul_idx = read_boundary(3)\n",
+    "grid = pygridgen.Gridgen(x, y, beta, ul_idx=ul_idx, shape=(40, 125))\n",
+    "plot_grid(grid, data_ax=data_ax, cell_ax=cell_ax, leg_loc=(1.0, 0.5))\n",
+    "fig.tight_layout()"
    ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(15, 7), ncols=2, sharey=True)\n",
+    "x, y, beta, ul_idx = read_boundary(4)\n",
+    "grid = pygridgen.Gridgen(x, y, beta, ul_idx=ul_idx, shape=(40, 80))\n",
+    "plot_grid(grid, data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
    "outputs": [],
    "source": [
     "x, y, beta, ul_idx = read_boundary(5)\n",
     "grid = pygridgen.Gridgen(x, y, beta, ul_idx=ul_idx, shape=(31, 31))\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(10, 10))\n",
-    "plot_grid(grid, ax=ax, leg_loc='right')"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(17, 8), ncols=2, sharey=True)\n",
+    "plot_grid(grid, data_ax=data_ax, cell_ax=cell_ax, leg_loc='right')\n",
+    "fig.tight_layout()"
    ]
   }
  ],
  "metadata": {
   "kernelspec": {
-   "display_name": "Python 3",
+   "display_name": "Python [default]",
    "language": "python",
    "name": "python3"
   },
@@ -152,9 +142,9 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.5.1"
+   "version": "3.6.5"
   }
  },
  "nbformat": 4,
- "nbformat_minor": 0
+ "nbformat_minor": 1
 }

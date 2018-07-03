@@ -10,11 +10,11 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
+    "%matplotlib inline\n",
+    "\n",
     "import warnings\n",
     "warnings.simplefilter('ignore')\n",
     "\n",
@@ -22,24 +22,11 @@
     "from matplotlib import pyplot\n",
     "import seaborn\n",
     "clear_bkgd = {'axes.facecolor':'none', 'figure.facecolor':'none'}\n",
-    "seaborn.set(style='ticks', context='notebook', rc=clear_bkgd)\n",
+    "seaborn.set(style='ticks', context='notebook', rc=clear_bkgd, color_codes=True)\n",
     "\n",
     "import pygridgen\n",
-    "%matplotlib inline\n",
     "\n",
-    "def plot_grid(grid, ax):\n",
-    "    ax.plot(grid.x.flatten(), grid.y.flatten(), 'k.', label='Grid nodes', zorder=5)\n",
-    "    ax.set_aspect('equal')\n",
-    "    ax.set_xlim([0, 4])\n",
-    "    ax.set_ylim([0, 4])\n",
-    "    ax.plot(grid.xbry, grid.ybry, '-', color='0.5', zorder=0)\n",
-    "    pos = numpy.nonzero(grid.beta == 1)\n",
-    "    neg = numpy.nonzero(grid.beta == -1)\n",
-    "    \n",
-    "    ax.plot(x[pos], y[pos], 'go', label='Positive', zorder=2, alpha=0.5)\n",
-    "    ax.plot(x[neg], y[neg], 'rs', label='Negative', zorder=2, alpha=0.5)\n",
-    "    \n",
-    "    ax.legend(numpoints=1)"
+    "from dochelpers import plot_grid"
    ]
   },
   {
@@ -64,9 +51,7 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "x = numpy.array([0.5, 2.0, 2.5, 1.5, 0.5])\n",
@@ -75,9 +60,10 @@
     "rows = 10\n",
     "cols = 5\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2)\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(rows, cols))\n",
-    "plot_grid(grid, ax=ax)"
+    "plot_grid(grid, data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper left')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -90,18 +76,17 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
-    "x = numpy.array([0.5, 2.0, 3.5, 2.0, 0.5, 0.5])\n",
-    "y = numpy.array([0.5, 0.5, 2.0, 3.5, 3.5, 0.5])\n",
+    "x = numpy.array([0.5, 2.0, 3.5, 2.5, 1.5, 0.5])\n",
+    "y = numpy.array([0.5, 0.5, 1.0, 2.0, 2.0, 0.5])\n",
     "beta = numpy.array([1, 1, 0, 1, 1, 0])\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2)\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 10))\n",
-    "plot_grid(grid, ax=ax)"
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -116,18 +101,17 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "x = numpy.array([0.5, 2.0, 2.0, 3.5, 3.5, 2.0, 2.0, 0.5, 0.5])\n",
     "y = numpy.array([0.5, 0.5, 1.5, 1.5, 2.5, 2.5, 3.5, 3.5, 0.5])\n",
     "beta = numpy.array([1, 1, 0, 0, 0, 0, 1, 1, 0])\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 10))\n",
-    "plot_grid(grid, ax=ax)"
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -140,16 +124,15 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "beta = numpy.array([1, 0, 0, 1, 1, 0, 0, 1, 0])\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 10))\n",
-    "plot_grid(grid, ax=ax)"
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -163,16 +146,15 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "beta = numpy.array([1, 1, -1, 1, 1, -1, 1, 1, 0])\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 10))\n",
-    "plot_grid(grid, ax=ax)"
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -193,18 +175,17 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "x = numpy.array([0.50, 2.00, 2.00, 3.50, 3.50, 2.00, 2.00, 0.50, 0.50])\n",
     "y = numpy.array([0.50, 0.50, 1.75, 1.75, 2.25, 2.25, 3.50, 3.50, 0.50])\n",
     "beta = numpy.array([1, 1, -1, 1, 1, -1, 1, 1, 0])\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 10))\n",
-    "plot_grid(grid, ax=ax)"
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -217,15 +198,14 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "grid = pygridgen.Gridgen(x, y, beta, shape=(20, 10))\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
-    "plot_grid(grid, ax=ax)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -257,9 +237,7 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "focus = pygridgen.Focus()\n",
@@ -267,8 +245,9 @@
     "\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 20), focus=focus)\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
-    "plot_grid(grid, ax=ax)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -286,18 +265,17 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "focus = pygridgen.Focus()\n",
-    "focus.add_focus(0.50, 'y', factor=5, extent=0.25)\n",
+    "focus.add_focus(0.50, 'y', factor=5, extent=0.50)\n",
     "\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 20), focus=focus)\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
-    "plot_grid(grid, ax=ax)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -319,9 +297,7 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "focus = pygridgen.Focus()\n",
@@ -330,8 +306,9 @@
     "\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 20), focus=focus)\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
-    "plot_grid(grid, ax=ax)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -353,9 +330,7 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "focus = pygridgen.Focus()\n",
@@ -364,8 +339,9 @@
     "\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 20), focus=focus)\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
-    "plot_grid(grid, ax=ax)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -379,9 +355,7 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "focus = pygridgen.Focus()\n",
@@ -390,8 +364,9 @@
     "\n",
     "grid = pygridgen.Gridgen(x, y, beta, shape=(10, 20), focus=focus, ul_idx=7)\n",
     "\n",
-    "fig, ax = pyplot.subplots(figsize=(5, 5))\n",
-    "plot_grid(grid, ax=ax)"
+    "fig, (data_ax, cell_ax) = pyplot.subplots(figsize=(10, 5), ncols=2, sharex=True)\n",
+    "plot_grid(grid,data_ax=data_ax, cell_ax=cell_ax, leg_loc='upper right')\n",
+    "fig.tight_layout()"
    ]
   },
   {
@@ -409,9 +384,7 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "metadata": {
-    "collapsed": false
-   },
+   "metadata": {},
    "outputs": [],
    "source": [
     "x = numpy.array([0.5, 3.5, 3.5, 0.5, 0.5])\n",
@@ -422,18 +395,19 @@
     "focus.add_focus(0.33, 'y', factor=3, extent=0.25)\n",
     "focus.add_focus(0.70, 'x', factor=5, extent=0.10)\n",
     "\n",
-    "fig, axes = pyplot.subplots(nrows=2, ncols=2, figsize=(10, 10))\n",
-    "for n, ax in enumerate(axes.flat, 1):\n",
-    "    ax = axes.flatten()[n-1]\n",
+    "fig, axes = pyplot.subplots(nrows=4, ncols=2, figsize=(10, 10), sharex=True)\n",
+    "for n, axrow in enumerate(axes, 1):\n",
     "    grid = pygridgen.Gridgen(x, y, beta, shape=(10, 20), focus=focus, ul_idx=n)\n",
-    "    plot_grid(grid, ax=ax)\n",
-    "    ax.set_title('upper left index = {}'.format(n))"
+    "    plot_grid(grid, data_ax=axrow[0], cell_ax=axrow[1], leg_loc=(1.0, 0.5))\n",
+    "    axrow[0].set_ylabel('upper left index = {}'.format(n))\n",
+    "    \n",
+    "fig.tight_layout()"
    ]
   }
  ],
  "metadata": {
   "kernelspec": {
-   "display_name": "Python 3",
+   "display_name": "Python [default]",
    "language": "python",
    "name": "python3"
   },
@@ -447,9 +421,9 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.5.1"
+   "version": "3.6.5"
   }
  },
  "nbformat": 4,
- "nbformat_minor": 0
+ "nbformat_minor": 1
 }
