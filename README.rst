@@ -13,12 +13,12 @@ A Python interface to Pavel Sakov's `gridgen`_ library
 
 The full documentation for this for library is `here`_.
 
-.. _here: https://pygridgen.github.io/pygridgen
+.. _here: https://pygridgen.readthedocs.io/en/latest/
 
 For more detailed documentation on grid generation, manipulation, and visualization,
 see the documentation for `pygridtools`_.
 
-.. _pygridtools: https://geosyntec.github.io/pygridtools
+.. _pygridtools: https://pygridtools.readthedocs.io/en/latest/
 
 
 Credits

@@ -30,21 +30,21 @@ def options():
 
 
 @pytest.fixture
-def grid_basic(options):
+def grid_basic(options, known_xy_basic):
     beta = [1.0, 1.0, 0.0, 1.0, 1.0]
     shape = (10, 5)
-    x, y = known_xy_basic()['boundary']
+    x, y = ['boundary']
     grid = pygridgen.Gridgen(x, y, beta, shape, **options)
     return grid
 
 
 @pytest.fixture
-def grid_autogenFalse(options):
+def grid_autogenFalse(options, known_xy_basic):
     beta = [1.0, 1.0, 0.0, 1.0, 1.0]
     shape = (10, 5)
 
     options.update({'autogen': False})
-    x, y = known_xy_basic()['boundary']
+    x, y = ['boundary']
     grid = pygridgen.Gridgen(x, y, beta, shape, **options)
     grid.generate_grid()
     return grid
@@ -347,7 +347,6 @@ def known_xy_focused():
     return known
 
 
-@pytest.fixture
 def grid_with_proj(options):
     beta = [1.0, 1.0, 0.0, 0.0, 1.0, 1.0]
     shape = (10, 4)

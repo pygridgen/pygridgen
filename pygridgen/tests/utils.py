@@ -2,7 +2,10 @@
 from contextlib import contextmanager
 from functools import wraps
 
-import pytest
+try:
+    import pytest
+except ImportError:
+    pytest = None
 
 
 def requires(module, modulename):
@@ -19,6 +22,7 @@ def requires(module, modulename):
     return outer_wrapper
 
 
+@requires(pytest, 'pytest')
 def raises(error):
     """Wrapper around pytest.raises to support None."""
     if error:
