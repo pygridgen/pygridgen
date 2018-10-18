@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy
 
 try:
@@ -11,46 +13,20 @@ import pytest
 import pygridgen
 
 
-@pytest.fixture
-def options():
-    options = {
-        'ul_idx': 0,
-        'focus': None,
-        'proj': None,
-        'nnodes': 14,
-        'precision': 1e-12,
-        'nppe': 3,
-        'newton': True,
-        'thin': True,
-        'checksimplepoly': True,
-        'verbose': False,
-        'autogen': True
-    }
-    return options
+def boundary_planar():
+    x = [0.0, 1.0, 2.0, 1.0, 0.0]
+    y = [0.0, 0.0, 0.5, 1.0, 1.0]
+    b = [1.0, 1.0, 0.0, 1.0, 1.0]
+    return x, y, b
 
 
-@pytest.fixture
-def grid_basic(options):
-    beta = [1.0, 1.0, 0.0, 1.0, 1.0]
-    shape = (10, 5)
-    x, y = known_xy_basic()['boundary']
-    grid = pygridgen.Gridgen(x, y, beta, shape, **options)
-    return grid
+def boundary_geographic():
+    x = [-122.7, -122.5, -122.1, -121.7, -122.1, -122.3]
+    y = [44.5, 45.0, 45.5, 45.5, 45.0, 44.5]
+    b = [1.0, 1.0, 0.0, 0.0, 1.0, 1.0]
+    return x, y, b
 
 
-@pytest.fixture
-def grid_autogenFalse(options):
-    beta = [1.0, 1.0, 0.0, 1.0, 1.0]
-    shape = (10, 5)
-
-    options.update({'autogen': False})
-    x, y = known_xy_basic()['boundary']
-    grid = pygridgen.Gridgen(x, y, beta, shape, **options)
-    grid.generate_grid()
-    return grid
-
-
-@pytest.fixture
 def known_xy_basic():
     x = [0.0, 1.0, 2.0, 1.0, 0.0]
     y = [0.0, 0.0, 0.5, 1.0, 1.0]
@@ -192,26 +168,11 @@ def known_xy_basic():
         'rho': (known_x_rho, known_y_rho),
         'u': (known_x_u, known_y_u),
         'v': (known_x_v, known_y_v),
-        'ortho': known_ortho
+        'ortho': known_ortho,
     }
     return known
 
 
-@pytest.fixture
-def grid_focused(options):
-    beta = [1.0, 1.0, 0.0, 1.0, 1.0]
-    shape = (9, 9)
-    focus = pygridgen.Focus()
-    focus.add_focus(0.50, 'x', factor=2.0, extent=3.0)
-    focus.add_focus(0.75, 'y', factor=0.5, extent=2.0)
-
-    options.update({'ul_idx': 0, 'focus': focus})
-    x, y = known_xy_focused()['boundary']
-    grid = pygridgen.Gridgen(x, y, beta, shape, **options)
-    return grid
-
-
-@pytest.fixture
 def known_xy_focused():
     x = [0.0, 1.0, 2.0, 1.0, 0.0]
     y = [0.0, 0.0, 0.5, 1.0, 1.0]
@@ -347,19 +308,6 @@ def known_xy_focused():
     return known
 
 
-@pytest.fixture
-def grid_with_proj(options):
-    beta = [1.0, 1.0, 0.0, 0.0, 1.0, 1.0]
-    shape = (10, 4)
-    utm10 = pyproj.Proj(proj='utm', zone=10, ellps='WGS84')
-
-    options.update({'ul_idx': 2, 'proj': utm10})
-    x, y = known_xy_with_proj()['boundary']
-    grid = pygridgen.Gridgen(x, y, beta, shape, **options)
-    return grid
-
-
-@pytest.fixture
 def known_xy_with_proj():
     x = [-122.7, -122.5, -122.1, -121.7, -122.1, -122.3]
     y = [44.5, 45.0, 45.5, 45.5, 45.0, 44.5]
@@ -506,217 +454,117 @@ def known_xy_with_proj():
     return known
 
 
-@pytest.fixture
-def grid_with_changed_params(options):
-    grid = grid_focused(options)
-    grid.focus = None
-    grid.ny = 10
-    grid.nx = 5
-    grid.generate_grid()
-    return grid
+def make_focus():
+    focus = pygridgen.Focus()
+    focus.add_focus(0.50, 'x', factor=2.0, extent=3.0)
+    focus.add_focus(0.75, 'y', factor=0.5, extent=2.0)
+    return focus
 
 
-GENERATORS = [
-    grid_basic,
-    grid_autogenFalse,
-    grid_focused,
-    grid_with_changed_params,
-    grid_with_proj,
-]
-
-KNOWN_XYS = [
-    known_xy_basic,
-    known_xy_basic,
-    known_xy_focused,
-    known_xy_basic,
-    known_xy_with_proj,
-]
-
-KNOWN_SHAPES = [
-    (10, 5),
-    (10, 5),
-    (9, 9),
-    (10, 5),
-    (10, 4),
-]
+def options():
+    options = {
+        'ul_idx': 0,
+        'focus': None,
+        'proj': None,
+        'nnodes': 14,
+        'precision': 1e-12,
+        'nppe': 3,
+        'newton': True,
+        'thin': True,
+        'checksimplepoly': True,
+        'verbose': False,
+        'autogen': True
+    }
+    return options
 
 
-@pytest.mark.parametrize(('gg', 'known_shape'), zip(GENERATORS, KNOWN_SHAPES))
-def test_shape(gg, known_shape, options):
-    grid = gg(options)
-    assert (grid.ny, grid.nx) == known_shape
+@pytest.fixture(params=[
+    {'xyb': boundary_planar(), 'beta': [1.0, 1.0, 0.0, 1.0, 1.0],
+     'shape': (10, 5), 'update': False,
+     'opts': {},
+     'known': known_xy_basic(), 'name': 'basic'},
+    {'xyb': boundary_planar(), 'beta': [1.0, 1.0, 0.0, 1.0, 1.0],
+     'shape': (9, 9), 'update': False,
+     'opts': {'ul_idx': 0, 'focus': make_focus()},
+     'known': known_xy_focused(), 'name': 'focused'},
+    {'xyb': boundary_planar(), 'beta': [1.0, 1.0, 0.0, 1.0, 1.0],
+     'shape': (10, 5), 'update': True,
+     'opts': {'ul_idx': 0, 'focus': make_focus()},
+     'known': known_xy_basic(), 'name': 'updated'},
+    {'xyb': boundary_geographic(), 'beta': [1.0, 1.0, 0.0, 1.0, 1.0],
+     'shape': (10, 4), 'update': False,
+     'opts': {'ul_idx': 2, 'proj': pyproj.Proj(proj='utm', zone=10, ellps='WGS84')},
+     'known': known_xy_with_proj(), 'name': 'geographic'},
+])
+def grid_and_knowns(request):
+    x, y, beta = request.param['xyb']
+    shape = request.param['shape']
+    opts = options()
+    opts.update(**request.param['opts'])
+    grid = pygridgen.Gridgen(x, y, beta, shape, **opts)
+    grid.name = request.param['name']
+    if request.param['update']:
+        grid.focus = None
+        grid.ny = 10
+        grid.nx = 5
+        grid.generate_grid()
+    return grid, request.param['known']
 
 
-@pytest.mark.parametrize('gg', GENERATORS)
-def test_nnodes(gg, options):
-    grid = gg(options)
-    assert grid.nnodes == options['nnodes']
+def test_shape(grid_and_knowns):
+    known_shapes = {
+        'basic': (10, 5),
+        'focused': (9, 9),
+        'updated': (10, 5),
+        'geographic': (10, 4),
+    }
+    grid, knowns = grid_and_knowns
+    assert grid.shape == known_shapes[grid.name]
+    assert (grid.ny, grid.nx) == known_shapes[grid.name]
 
 
-@pytest.mark.parametrize('gg', GENERATORS)
-def test_precision(gg, options):
-    grid = gg(options)
-    assert grid.precision == options['precision']
+@pytest.mark.parametrize('attr', [
+    'nnodes',
+    'precision',
+    'nppe',
+    'newton',
+    'thin',
+    'checksimplepoly',
+    'verbose'
+])
+def test_grid_attr(grid_and_knowns, attr):
+    grid, knowns = grid_and_knowns
+    assert getattr(grid, attr) == options()[attr]
 
 
-@pytest.mark.parametrize('gg', GENERATORS)
-def test_nppe(gg, options):
-    grid = gg(options)
-    assert grid.nppe == options['nppe']
+def test_xy(grid_and_knowns):
+    grid, knowns = grid_and_knowns
+    nptest.assert_array_almost_equal(grid.x, knowns['vert'][0], decimal=2)
+    nptest.assert_array_almost_equal(grid.y, knowns['vert'][1], decimal=2)
 
 
-@pytest.mark.parametrize('gg', GENERATORS)
-def test_newton(gg, options):
-    grid = gg(options)
-    assert grid.newton == options['newton']
+@pytest.mark.parametrize('attr_suffix', ['vert', 'psi', 'rho', 'u', 'v'])
+def test_other_arrays(grid_and_knowns, attr_suffix):
+    grid, knowns = grid_and_knowns
+    x = getattr(grid, 'x_' + attr_suffix)
+    y = getattr(grid, 'y_' + attr_suffix)
+    nptest.assert_array_almost_equal(x, knowns[attr_suffix][0], decimal=2)
+    nptest.assert_array_almost_equal(y, knowns[attr_suffix][1], decimal=2)
 
 
-@pytest.mark.parametrize('gg', GENERATORS)
-def test_thin(gg, options):
-    grid = gg(options)
-    assert grid.thin == options['thin']
-
-
-@pytest.mark.parametrize('gg', GENERATORS)
-def test_checksimplepoly(gg, options):
-    grid = gg(options)
-    assert grid.checksimplepoly == options['checksimplepoly']
-
-
-@pytest.mark.parametrize('gg', GENERATORS)
-def test_verbose(gg, options):
-    grid = gg(options)
-    assert grid.verbose == options['verbose']
-
-
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_xy(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    nptest.assert_array_almost_equal(
-        grid.x,
-        known_xy['vert'][0],
-        decimal=2
-    )
-
-    nptest.assert_array_almost_equal(
-        grid.y,
-        known_xy['vert'][1],
-        decimal=2
-    )
-
-
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_xy_vert(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    nptest.assert_array_almost_equal(
-        grid.x_vert,
-        known_xy['vert'][0],
-        decimal=2
-    )
-
-    nptest.assert_array_almost_equal(
-        grid.y_vert,
-        known_xy['vert'][1],
-        decimal=2
-    )
-
-
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_xy_psi(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    nptest.assert_array_almost_equal(
-        grid.x_psi,
-        known_xy['psi'][0],
-        decimal=2
-    )
-
-    nptest.assert_array_almost_equal(
-        grid.y_psi,
-        known_xy['psi'][1],
-        decimal=2
-    )
-
-
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_xy_rho(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    nptest.assert_array_almost_equal(
-        grid.x_rho,
-        known_xy['rho'][0],
-        decimal=2
-    )
-
-    nptest.assert_array_almost_equal(
-        grid.y_rho,
-        known_xy['rho'][1],
-        decimal=2
-    )
-
-
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_xy_u(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    nptest.assert_array_almost_equal(
-        grid.x_u,
-        known_xy['u'][0],
-        decimal=2
-    )
-
-    nptest.assert_array_almost_equal(
-        grid.y_u,
-        known_xy['u'][1],
-        decimal=2
-    )
-
-
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_xy_v(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    nptest.assert_array_almost_equal(
-        grid.x_v,
-        known_xy['v'][0],
-        decimal=2
-    )
-
-    nptest.assert_array_almost_equal(
-        grid.y_v,
-        known_xy['v'][1],
-        decimal=2
-    )
-
-
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_boundary(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    known_x, known_y = known_xy['boundary']
+def test_boundary(grid_and_knowns):
+    grid, knowns = grid_and_knowns
+    known_x, known_y = knowns['boundary']
     if grid.proj is not None:
         known_x, known_y = grid.proj(known_x, known_y)
 
-    nptest.assert_array_almost_equal(
-        grid.xbry,
-        known_x,
-        decimal=2
-    )
-
-    nptest.assert_array_almost_equal(
-        grid.ybry,
-        known_y,
-        decimal=2
-    )
+    nptest.assert_array_almost_equal(grid.xbry, known_x, decimal=2)
+    nptest.assert_array_almost_equal(grid.ybry, known_y, decimal=2)
 
 
-@pytest.mark.parametrize(('gg', 'known'), zip(GENERATORS, KNOWN_XYS))
-def test_orthogonality(gg, known, options):
-    grid = gg(options)
-    known_xy = known()
-    known_ortho = known_xy['ortho']
+def test_orthogonality(grid_and_knowns):
+    grid, knowns = grid_and_knowns
+    known_ortho = knowns['ortho']
     nptest.assert_array_almost_equal(
         grid.orthogonality,
         known_ortho,
@@ -724,22 +572,20 @@ def test_orthogonality(gg, known, options):
     )
 
 
-def test_mask_poylgon(grid_basic):
-    island = numpy.array([(5, 10), (10, 10), (10, 5), (5, 5)]) / 10.
-    known_mask_rho = numpy.array([
-        [ 1.,  1.,  1.,  1.],
-        [ 1.,  1.,  1.,  0.],
-        [ 1.,  1.,  0.,  0.],
-        [ 1.,  1.,  0.,  0.],
-        [ 1.,  1.,  0.,  0.],
-        [ 1.,  1.,  1.,  1.],
-        [ 1.,  1.,  1.,  1.],
-        [ 1.,  1.,  1.,  1.],
-        [ 1.,  1.,  1.,  1.],
-    ])
-    grid_basic.mask_polygon(island)
-
-    nptest.assert_array_almost_equal(
-        known_mask_rho,
-        grid_basic.mask_rho
-    )
+def test_mask_poylgon(grid_and_knowns):
+    grid, knowns = grid_and_knowns
+    if grid.name == 'basic':
+        island = numpy.array([(5, 10), (10, 10), (10, 5), (5, 5)]) / 10.
+        known_mask_rho = numpy.array([
+            [ 1.,  1.,  1.,  1.],
+            [ 1.,  1.,  1.,  0.],
+            [ 1.,  1.,  0.,  0.],
+            [ 1.,  1.,  0.,  0.],
+            [ 1.,  1.,  0.,  0.],
+            [ 1.,  1.,  1.,  1.],
+            [ 1.,  1.,  1.,  1.],
+            [ 1.,  1.,  1.,  1.],
+            [ 1.,  1.,  1.,  1.],
+        ])
+        grid.mask_polygon(island)
+        nptest.assert_array_almost_equal(grid.mask_rho, known_mask_rho)
