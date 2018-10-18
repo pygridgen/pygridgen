@@ -1,3 +1,5 @@
+import sys
+
 import numpy
 from matplotlib import pyplot
 from matplotlib.collections import QuadMesh, PathCollection
@@ -40,6 +42,7 @@ def test_CSA_caller(base_csa, xy_out):
     nptest.assert_array_almost_equal(result, expected, decimal=4)
 
 
+@pytest.mark.skipif(sys.version_info < (3, 5), reason="requires python >= 3.5")
 def test_CSA_plotter(base_csa, xy_out):
     fig, ax = pyplot.subplots()
     fig2, artists = base_csa.plot(*xy_out, ax=ax, mesh_opts=dict(vmin=-1, vmax=1),
