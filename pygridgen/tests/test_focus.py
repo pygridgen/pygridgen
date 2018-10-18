@@ -6,7 +6,6 @@ import pytest
 import pygridgen
 
 
-@pytest.fixture
 def base_focus_point(axis):
     pos = 0.25
     factor = 3
@@ -22,9 +21,8 @@ def xy():
     return numpy.meshgrid(_x, _y)
 
 
-@pytest.fixture
-def known_focused_simple(axis):
-    x, y = xy()
+def known_focused_simple(axis, xy):
+    x, y = xy
     focused = numpy.array([
         [0., 0.106, 0.17, 0.222, 0.307, 0.43, 0.569, 0.712, 0.856, 1.],
         [0., 0.106, 0.17, 0.222, 0.307, 0.43, 0.569, 0.712, 0.856, 1.],
@@ -72,43 +70,28 @@ def test_spec_bad_axis():
         pygridgen.grid._FocusPoint(0.1, 'xjunk', 2, 0.25)
 
 
-@pytest.mark.parametrize('focus_point', [base_focus_point('x'), base_focus_point('y')])
-def test_call_bad_x_pos(focus_point):
+@pytest.mark.parametrize('axis', ['x', 'y'])
+@pytest.mark.parametrize(('x', 'y'), [
+    ([1.1], [0.5]),
+    ([-0.1], [0.5]),
+    ([0.5], [1.1]),
+    ([0.5], [-0.1])
+])
+def test_call_bad(axis, x, y):
+    fp = base_focus_point(axis)
     with pytest.raises(ValueError):
-        focus_point([1.1], [0.5])
+        fp(x, y)
 
 
-@pytest.mark.parametrize('focus_point', [base_focus_point('x'), base_focus_point('y')])
-def test_call_bad_x_neg(focus_point):
-    with pytest.raises(ValueError):
-        focus_point([-0.1], [0.5])
-
-
-@pytest.mark.parametrize('focus_point', [base_focus_point('x'), base_focus_point('y')])
-def test_call_bad_y_pos(focus_point):
-    with pytest.raises(ValueError):
-        focus_point([0.5], [1.1])
-
-
-@pytest.mark.parametrize('focus_point', [base_focus_point('x'), base_focus_point('y')])
-def test_call_bad_y_neg(focus_point):
-    with pytest.raises(ValueError):
-        focus_point([0.5], [-0.1])
-
-
-@pytest.mark.parametrize('focus_point', [base_focus_point('x'), base_focus_point('y')])
-def test_pos(focus_point):
-    assert focus_point.pos == 0.25
-
-
-@pytest.mark.parametrize('focus_point', [base_focus_point('x'), base_focus_point('y')])
-def test_factor(focus_point):
-    assert focus_point.factor == 3
-
-
-@pytest.mark.parametrize('focus_point', [base_focus_point('x'), base_focus_point('y')])
-def test_extent(focus_point):
-    assert focus_point.extent == 0.2
+@pytest.mark.parametrize('axis', ['x', 'y'])
+@pytest.mark.parametrize(('attr', 'known'), [
+    ('pos', 0.25),
+    ('factor', 3),
+    ('extent', 0.20),
+])
+def test_pos(axis, attr, known):
+    fp = base_focus_point(axis)
+    assert getattr(fp, attr) == known
 
 
 @pytest.mark.parametrize('axis', ['x', 'y'])
@@ -116,7 +99,7 @@ def test_extent(focus_point):
 def test_focused_direct(xy, axis, index):
     focus_point = base_focus_point(axis)
     result = focus_point(*xy)
-    known = known_focused_simple(axis)
+    known = known_focused_simple(axis, xy)
 
     nptest.assert_array_almost_equal(
         result[index],
