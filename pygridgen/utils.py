@@ -1,16 +1,12 @@
 from contextlib import contextmanager
 from functools import wraps
 
+import numpy
+
 try:
     import pytest
 except ImportError:  # pragma: no cover
     pytest = None
-
-
-__all__ = [
-    'requires',
-    'raises',
-]
 
 
 def requires(module, modulename):
@@ -25,3 +21,12 @@ def requires(module, modulename):
                 return function(*args, **kwargs)
         return inner_wrapper
     return outer_wrapper
+
+
+def seed(func):
+    """ Decorator to seed the RNG before any function. """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        numpy.random.seed(0)
+        return func(*args, **kwargs)
+    return wrapper

@@ -4,8 +4,8 @@
     :target: https://travis-ci.org/pygridgen/pygridgen
 .. image:: https://coveralls.io/repos/github/pygridgen/pygridgen/badge.svg?branch=master
     :target: https://coveralls.io/github/pygridgen/pygridgen?branch=master
-
-
+.. image:: https://readthedocs.org/projects/pygridgen/badge/?version=latest
+    :target: https://pygridgen.readthedocs.io/en/latest/?badge=latest
 
 A Python interface to Pavel Sakov's `gridgen`_ library
 
