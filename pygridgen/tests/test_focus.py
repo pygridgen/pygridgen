@@ -2,6 +2,7 @@ import numpy
 
 import numpy.testing as nptest
 import pytest
+from pygridgen.tests import raises
 
 import pygridgen
 
@@ -53,20 +54,8 @@ def full_focus():
     return focus
 
 
-@pytest.mark.parametrize('axis', ['x', 'y'])
-def test_spec_bad_position_positive(axis):
-    with pytest.raises(ValueError):
-        pygridgen.grid._FocusPoint(1.1, axis, 2, 0.25)
-
-
-@pytest.mark.parametrize('axis', ['x', 'y'])
-def test_spec_bad_position_negative(axis):
-    with pytest.raises(ValueError):
-        pygridgen.grid._FocusPoint(-0.1, axis, 2, 0.25)
-
-
 def test_spec_bad_axis():
-    with pytest.raises(ValueError):
+    with raises(ValueError):
         pygridgen.grid._FocusPoint(0.1, 'xjunk', 2, 0.25)
 
 
@@ -79,7 +68,7 @@ def test_spec_bad_axis():
 ])
 def test_call_bad(axis, x, y):
     fp = base_focus_point(axis)
-    with pytest.raises(ValueError):
+    with raises(ValueError):
         fp(x, y)
 
 

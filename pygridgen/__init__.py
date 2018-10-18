@@ -14,7 +14,7 @@ Released under an MIT license.
 
 
 from .grid import *
-
+from . import utils
 from .tests import test, teststrict
 
 __authors__ = [

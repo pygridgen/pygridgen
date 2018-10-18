@@ -1,11 +1,16 @@
-
 from contextlib import contextmanager
 from functools import wraps
 
 try:
     import pytest
-except ImportError:
+except ImportError:  # pragma: no cover
     pytest = None
+
+
+__all__ = [
+    'requires',
+    'raises',
+]
 
 
 def requires(module, modulename):
@@ -20,18 +25,3 @@ def requires(module, modulename):
                 return function(*args, **kwargs)
         return inner_wrapper
     return outer_wrapper
-
-
-@requires(pytest, 'pytest')
-def raises(error):
-    """Wrapper around pytest.raises to support None."""
-    if error:
-        return pytest.raises(error)
-    else:
-        @contextmanager
-        def not_raises():
-            try:
-                yield
-            except Exception as e:
-                raise e
-        return not_raises()
