@@ -198,31 +198,8 @@ class CSA(object):
         if scatter_opts is None:
             scatter_opts = {}
 
-        fig, ax = pyplot.subplots()
         zout = self._calculate_points(xout, yout)
-        ax.pcolormesh(xout, yout, zout, **mesh_opts)
-        ax.scatter(self.xin, self.yin, 10, self.zin, **scatter_opts)
-        fig.colorbar()
-        return fig
-
-
-if __name__ == '__main__':
-    xin = numpy.random.randn(10000)
-    yin = numpy.random.randn(10000)
-    zin = numpy.sin(xin**2 + yin**2) / (xin**2 + yin**2)
-    sigma = 0.01 * numpy.ones_like(xin)
-
-    print(' ### Set up input data points')
-
-    xout, yout = numpy.mgrid[-3:3:100j, -3:3:100j]
-
-    csa_interp = CSA(xin, yin, zin)
-    fig, (ax1, ax2) = pyplot.subplots(ncols=2)
-    csa_interp.plot(xout, yout, ax=ax1, mesh_opts=dict(vmin=-1, vmax=1),
-                    scatter_opts=dict(vmin=-1, vmax=1, edgecolors='none'))
-
-    csa_interp.zin = numpy.cos(xin + yin**2)
-    csa_interp.plot(xout, yout, ax=ax2, mesh_opts=dict(vmin=-1, vmax=1),
-                    scatter_opts=dict(vmin=-1, vmax=1, edgecolors='none'))
-
-    pyplot.show()
+        mesh = ax.pcolormesh(xout, yout, zout, **mesh_opts)
+        dots = ax.scatter(self.xin, self.yin, 10, self.zin, **scatter_opts)
+        cbar = fig.colorbar(mesh, ax=ax)
+        return fig, {'surface': mesh, 'points': dots, 'colorbar': cbar}
