@@ -7,7 +7,6 @@ from pygridgen.tests import raises
 import pygridgen
 
 
-
 def base_focus_point(axis):
     pos = 0.25
     factor = 3
@@ -150,7 +149,10 @@ def test_full_focus_called(full_focus, xy):
 
     nptest.assert_array_almost_equal(xf, known_focused_x, decimal=3)
     nptest.assert_array_almost_equal(yf, known_focused_y, decimal=3)
+
+
 def test_focuspoint_to_dict():
     fp = pygridgen.grid._FocusPoint(0.25, 'x', 4, 0.5)
+    fp2 = pygridgen.grid._FocusPoint(**fp.to_dict())
     assert fp.to_dict() == {'pos': 0.25, 'axis': 'x', 'factor': 4, 'extent': 0.5}
-    assert fp == pygridgen.grid._FocusPoint(**fp.to_dict())
+    assert fp.to_dict() == fp2.to_dict()
