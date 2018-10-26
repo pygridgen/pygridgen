@@ -112,6 +112,10 @@ class _FocusPoint(object):
         elif self.axis == 'x':
             return self._do_focus(x), y
 
+    def to_dict(self):
+        output_dict = {'pos': self.pos, 'axis': self.axis, 'factor': self.factor, 'extent': self.extent}
+        return output_dict
+
 
 class Focus(object):
     """
