@@ -2,10 +2,10 @@ import sys
 import matplotlib
 from matplotlib import style
 
-import pygridgen
-
 matplotlib.use('agg')
 style.use('classic')
+
+import pygridgen
 
 if '--strict' in sys.argv:
     sys.argv.remove('--strict')

@@ -1,12 +1,6 @@
-from contextlib import contextmanager
 from functools import wraps
 
 import numpy
-
-try:
-    import pytest
-except ImportError:  # pragma: no cover
-    pytest = None
 
 
 def requires(module, modulename):

@@ -1,6 +1,5 @@
 import sys
 import os
-import site
 import ctypes
 from pkg_resources import resource_filename
 
