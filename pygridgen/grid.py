@@ -986,7 +986,7 @@ class Gridgen(CGrid):
         super(Gridgen, self).__init__(x, y)
 
     def to_spec(self):
-        focus = Focus.from_spec(self.focus.to_spec())       
+        focus = Focus.from_spec(self.focus.to_spec())
         output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
                        'beta': self.beta, 'shape': self.shape,
                        'focus': focus}

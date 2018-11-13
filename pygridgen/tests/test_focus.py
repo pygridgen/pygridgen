@@ -157,6 +157,7 @@ def test_focuspoint_to_dict():
     assert fp.to_dict() == {'pos': 0.25, 'axis': 'x', 'factor': 4, 'extent': 0.5}
     assert fp.to_dict() == fp2.to_dict()
 
+
 def test_focus_to_from_spec():
     fpx = pygridgen.grid._FocusPoint(0.25, 'x', 4, 0.5)
     fpy = pygridgen.grid._FocusPoint(0.33, 'y', 0.1, 0.2)
@@ -177,4 +178,3 @@ def test_focus_to_from_spec():
         numpy.testing.assert_equal(dict1.keys(), dict2.keys())
         for value1, value2 in zip(dict1.values(), dict2.values()):
             assert value1 == value2
-            

@@ -590,6 +590,7 @@ def test_mask_poylgon(grid_and_knowns):
         grid.mask_polygon(island)
         nptest.assert_array_almost_equal(grid.mask_rho, known_mask_rho)
 
+
 def test_gridgen_to_from_spec():
     x = numpy.array([0.50, 2.00, 2.00, 3.50, 3.50, 2.00, 2.00, 0.50, 0.50])
     y = numpy.array([0.50, 0.50, 1.75, 1.75, 2.25, 2.25, 3.50, 3.50, 0.50])
@@ -605,4 +606,3 @@ def test_gridgen_to_from_spec():
     # testing - using almost equal due to rounding issues with floats
     numpy.testing.assert_array_almost_equal(grid1.x, grid2.x)
     numpy.testing.assert_array_almost_equal(grid1.y, grid2.y)
-    
