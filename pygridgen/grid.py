@@ -104,7 +104,7 @@ class _FocusPoint(object):
             raise ValueError('x must be within the range [0, 1]')
 
         if numpy.any(y > 1.0) or numpy.any(y < 0.0):
-                raise ValueError('y must be within the range [0, 1]')
+            raise ValueError('y must be within the range [0, 1]')
 
         if self.axis == 'y':
             return x, self._do_focus(y)
@@ -113,7 +113,8 @@ class _FocusPoint(object):
             return self._do_focus(x), y
 
     def to_dict(self):
-        output_dict = {'pos': self.pos, 'axis': self.axis, 'factor': self.factor, 'extent': self.extent}
+        output_dict = {'pos': self.pos, 'axis': self.axis,
+                       'factor': self.factor, 'extent': self.extent}
         return output_dict
 
 
@@ -203,9 +204,10 @@ class Focus(object):
 
     def from_spec(foci):
         f = Focus()
-        for focuspoint in foci:            
+        for focuspoint in foci:
             f.add_focus(**focuspoint)
         return f
+
 
 class CGrid(object):
     """
@@ -429,7 +431,8 @@ class CGrid(object):
         """
         x_temp = 0.5 * (self.x_vert[1:, :] + self.x_vert[:-1, :])
         y_temp = 0.5 * (self.y_vert[1:, :] + self.y_vert[:-1, :])
-        dx = numpy.sqrt(numpy.diff(x_temp, axis=1)**2 + numpy.diff(y_temp, axis=1)**2)
+        dx = numpy.sqrt(numpy.diff(x_temp, axis=1)**2 +
+                        numpy.diff(y_temp, axis=1)**2)
         return dx
 
     @property
@@ -443,7 +446,8 @@ class CGrid(object):
         """
         x_temp = 0.5 * (self.x_vert[:, 1:] + self.x_vert[:, :-1])
         y_temp = 0.5 * (self.y_vert[:, 1:] + self.y_vert[:, :-1])
-        dy = numpy.sqrt(numpy.diff(x_temp, axis=0)**2 + numpy.diff(y_temp, axis=0)**2)
+        dy = numpy.sqrt(numpy.diff(x_temp, axis=0)**2 +
+                        numpy.diff(y_temp, axis=0)**2)
         return dy
 
     @property
@@ -658,7 +662,8 @@ class CGrid_geo(CGrid):
         else:
             x_temp = 0.5 * (self.x_vert[1:, :] + self.x_vert[:-1, :])
             y_temp = 0.5 * (self.y_vert[1:, :] + self.y_vert[:-1, :])
-            dx = numpy.sqrt(numpy.diff(x_temp, axis=1)**2 + numpy.diff(y_temp, axis=1)**2)
+            dx = numpy.sqrt(numpy.diff(x_temp, axis=1)**2 +
+                            numpy.diff(y_temp, axis=1)**2)
             return dx
 
     @property
@@ -670,7 +675,8 @@ class CGrid_geo(CGrid):
         else:
             x_temp = 0.5 * (self.x_vert[:, 1:] + self.x_vert[:, :-1])
             y_temp = 0.5 * (self.y_vert[:, 1:] + self.y_vert[:, :-1])
-            dy = numpy.sqrt(numpy.diff(x_temp, axis=0)**2 + numpy.diff(y_temp, axis=0)**2)
+            dy = numpy.sqrt(numpy.diff(x_temp, axis=0)**2 +
+                            numpy.diff(y_temp, axis=0)**2)
             return dy
 
     @property
@@ -802,9 +808,12 @@ class Gridgen(CGrid):
                 raise OSError('Failed to load libgridgen.')
 
         # initialize/set types of critical variables
-        self._libgridgen.gridgen_generategrid2.restype = ctypes.POINTER(ctypes.c_void_p)
-        self._libgridgen.gridnodes_getx.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
-        self._libgridgen.gridnodes_gety.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_double))
+        self._libgridgen.gridgen_generategrid2.restype = ctypes.POINTER(
+            ctypes.c_void_p)
+        self._libgridgen.gridnodes_getx.restype = ctypes.POINTER(
+            ctypes.POINTER(ctypes.c_double))
+        self._libgridgen.gridnodes_gety.restype = ctypes.POINTER(
+            ctypes.POINTER(ctypes.c_double))
         self._libgridgen.gridnodes_getnce1.restype = ctypes.c_int
         self._libgridgen.gridnodes_getnce2.restype = ctypes.c_int
         self._libgridgen.gridmap_build.restype = ctypes.c_void_p
@@ -984,9 +993,9 @@ class Gridgen(CGrid):
         super(Gridgen, self).__init__(x, y)
 
     def to_spec(self):
-        output_dict = {'xbry':self.xbry, 'ybry':self.ybry, 
-                       'beta':self.beta, 'shape':self.shape,
-                       'focus':self.focus}
+        output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
+                       'beta': self.beta, 'shape': self.shape,
+                       'focus': self.focus}
 
         return output_dict
 
@@ -995,13 +1004,16 @@ class Gridgen(CGrid):
         g = Gridgen(**attributes)
         return g
 
+
 def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
     """ Possibly converts centroids to nodes """
     Mp, Lp = xr.shape
     x = empty((Mp + 1, Lp + 1), dtype='d')
     y = empty((Mp + 1, Lp + 1), dtype='d')
-    x[1:-1, 1:-1] = 0.25 * (xr[1:, 1:] + xr[1:, :-1] + xr[:-1, 1:] + xr[:-1, :-1])
-    y[1:-1, 1:-1] = 0.25 * (yr[1:, 1:] + yr[1:, :-1] + yr[:-1, 1:] + yr[:-1, :-1])
+    x[1:-1, 1:-1] = 0.25 * (xr[1:, 1:] + xr[1:, :-1] +
+                            xr[:-1, 1:] + xr[:-1, :-1])
+    y[1:-1, 1:-1] = 0.25 * (yr[1:, 1:] + yr[1:, :-1] +
+                            yr[:-1, 1:] + yr[:-1, :-1])
 
     # east side
     theta = 0.5 * (ang[:-1, -1] + ang[1:, -1])
