@@ -203,9 +203,10 @@ class Focus(object):
 
     def from_spec(foci):
         f = Focus()
-        for focuspoint in foci:            
+        for focuspoint in foci:
             f.add_focus(**focuspoint)
         return f
+
 
 class CGrid(object):
     """
@@ -984,9 +985,9 @@ class Gridgen(CGrid):
         super(Gridgen, self).__init__(x, y)
 
     def to_spec(self):
-        output_dict = {'xbry':self.xbry, 'ybry':self.ybry, 
-                       'beta':self.beta, 'shape':self.shape,
-                       'focus':self.focus}
+        output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
+                       'beta': self.beta, 'shape': self.shape,
+                       'focus': self.focus}
 
         return output_dict
 
@@ -994,6 +995,7 @@ class Gridgen(CGrid):
         # print(attributes)
         g = Gridgen(**attributes)
         return g
+
 
 def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
     """ Possibly converts centroids to nodes """

@@ -162,7 +162,7 @@ def test_focus_to_from_spec():
     fpy = pygridgen.grid._FocusPoint(0.33, 'y', 0.1, 0.2)
     f1 = pygridgen.grid.Focus(fpx, fpy)
 
-    ## Check that the spec dictionary returns desired results
+    # Check that the spec dictionary returns desired results
     assert f1.to_spec() == [
         {'pos': 0.25, 'axis': 'x', 'factor': 4, 'extent': 0.5},
         {'pos': 0.33, 'axis': 'y', 'factor': 0.1, 'extent': 0.2}
@@ -170,10 +170,10 @@ def test_focus_to_from_spec():
 
     f2 = pygridgen.grid.Focus.from_spec(f1.to_spec())
 
-    ## Check that the spec dictionary returns desired results of the orignal 
-    ## focus and the focus generated from .to_spec()
-    ## First check the keys are in order and then check the values
+    # Check that the spec dictionary returns desired results of the orignal
+    # focus and the focus generated from .to_spec()
+    # First check the keys are in order and then check the values
     for dict1, dict2 in zip(f1.to_spec(), f2.to_spec()):
         numpy.testing.assert_equal(dict1.keys(), dict2.keys())
         for value1, value2 in zip(dict1.values(), dict2.values()):
-            assert value1==value2
+            assert value1 == value2
