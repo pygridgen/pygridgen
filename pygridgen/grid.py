@@ -201,8 +201,9 @@ class Focus(object):
             output_spec.append(focuspoint.to_dict())
         return output_spec
 
-    def from_spec(foci):
-        f = Focus()
+    @classmethod
+    def from_spec(cls, foci):
+        f = cls()
         for focuspoint in foci:
             f.add_focus(**focuspoint)
         return f
@@ -985,16 +986,16 @@ class Gridgen(CGrid):
         super(Gridgen, self).__init__(x, y)
 
     def to_spec(self):
+        focus = Focus.from_spec(self.focus.to_spec())       
         output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
                        'beta': self.beta, 'shape': self.shape,
-                       'focus': self.focus}
+                       'focus': focus}
 
         return output_dict
 
-    def from_spec(attributes):
-        # print(attributes)
-        g = Gridgen(**attributes)
-        return g
+    @classmethod
+    def from_spec(cls, attributes):
+        return cls(**attributes)
 
 
 def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
