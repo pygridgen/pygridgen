@@ -177,3 +177,4 @@ def test_focus_to_from_spec():
         numpy.testing.assert_equal(dict1.keys(), dict2.keys())
         for value1, value2 in zip(dict1.values(), dict2.values()):
             assert value1 == value2
+            

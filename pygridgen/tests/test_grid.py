@@ -605,3 +605,4 @@ def test_gridgen_to_from_spec():
     # testing - using almost equal due to rounding issues with floats
     numpy.testing.assert_array_almost_equal(grid1.x, grid2.x)
     numpy.testing.assert_array_almost_equal(grid1.y, grid2.y)
+    
