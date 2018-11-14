@@ -986,16 +986,21 @@ class Gridgen(CGrid):
         super(Gridgen, self).__init__(x, y)
 
     def to_spec(self):
-        focus = Focus.from_spec(self.focus.to_spec())
         output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
                        'beta': self.beta, 'shape': self.shape,
-                       'focus': focus}
+                       'focus': self.focus.to_spec(),
+                       'ul_idx': self.ul_idx, 'proj': self.proj,
+                       'nnodes': self.nnodes, 'precision': self.precision,
+                       'nppe': self.nppe, 'newton': self.newton,
+                       'thin': self.thin, 'checksimplepoly': self.checksimplepoly}
 
         return output_dict
 
     @classmethod
     def from_spec(cls, attributes):
-        return cls(**attributes)
+        focus_spec = attributes.pop('focus', None)
+        focus = Focus.from_spec(focus_spec)
+        return cls(**attributes, focus=focus)
 
 
 def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
