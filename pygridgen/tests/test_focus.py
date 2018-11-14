@@ -149,7 +149,7 @@ def test_full_focus_called(full_focus, xy):
 
     nptest.assert_array_almost_equal(xf, known_focused_x, decimal=3)
     nptest.assert_array_almost_equal(yf, known_focused_y, decimal=3)
-    
+
 
 def test_focus_to_from_spec():
     fpx = pygridgen.grid._FocusPoint(0.25, 'x', 4, 0.5)

@@ -1000,7 +1000,7 @@ class Gridgen(CGrid):
     def from_spec(cls, attributes):
         focus_spec = attributes.pop('focus', None)
         focus = Focus.from_spec(focus_spec)
-        return cls(**attributes, focus=focus)
+        return cls(focus=focus, **attributes)
 
 
 def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover
