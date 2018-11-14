@@ -196,6 +196,9 @@ class Focus(object):
         return x, y
 
     def to_spec(self):
+        """ Export to the defining properties of the focus to a JSON-like
+        structure
+        """
         output_spec = []
         for focuspoint in self._focuspoints:
             output_spec.append(focuspoint.to_dict())
@@ -203,6 +206,8 @@ class Focus(object):
 
     @classmethod
     def from_spec(cls, foci):
+        """ Create a new focus object from a JSON-like structure
+        """
         f = cls()
         for focuspoint in foci:
             f.add_focus(**focuspoint)
@@ -986,9 +991,10 @@ class Gridgen(CGrid):
         super(Gridgen, self).__init__(x, y)
 
     def to_spec(self):
+        """ Export the grid-defining parameters into a JSON-like structure """
         output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
                        'beta': self.beta, 'shape': self.shape,
-                       'focus': self.focus.to_spec(),
+                       'focus': self.focus.to_spec() if self.focus else None,
                        'ul_idx': self.ul_idx, 'proj': self.proj,
                        'nnodes': self.nnodes, 'precision': self.precision,
                        'nppe': self.nppe, 'newton': self.newton,
@@ -998,8 +1004,9 @@ class Gridgen(CGrid):
 
     @classmethod
     def from_spec(cls, attributes):
+        """ Create a new grid from a JSON-like data structure """
         focus_spec = attributes.pop('focus', None)
-        focus = Focus.from_spec(focus_spec)
+        focus = Focus.from_spec(focus_spec) if focus_spec else None
         return cls(focus=focus, **attributes)
 
 

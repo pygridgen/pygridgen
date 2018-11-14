@@ -591,14 +591,17 @@ def test_mask_poylgon(grid_and_knowns):
         nptest.assert_array_almost_equal(grid.mask_rho, known_mask_rho)
 
 
-def test_gridgen_to_from_spec():
+@pytest.mark.parametrize('use_focus', [True, False])
+def test_gridgen_to_from_spec(use_focus):
     x = numpy.array([0.50, 2.00, 2.00, 3.50, 3.50, 2.00, 2.00, 0.50, 0.50])
     y = numpy.array([0.50, 0.50, 1.75, 1.75, 2.25, 2.25, 3.50, 3.50, 0.50])
     beta = numpy.array([1, 1, -1, 1, 1, -1, 1, 1, 0])
 
-    focus = pygridgen.Focus()
-    focus.add_focus(0.50, 'y', factor=5, extent=0.25)
-    focus.add_focus(0.50, 'x', factor=5, extent=0.25)
+    focus = None
+    if use_focus:
+        focus = pygridgen.Focus()
+        focus.add_focus(0.50, 'y', factor=5, extent=0.25)
+        focus.add_focus(0.50, 'x', factor=5, extent=0.25)
 
     grid1 = pygridgen.Gridgen(x, y, beta, shape=(20, 10), focus=focus)
     grid2 = pygridgen.grid.Gridgen.from_spec((grid1.to_spec()))
