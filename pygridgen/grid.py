@@ -195,6 +195,24 @@ class Focus(object):
             x, y = focuspoint(x, y)
         return x, y
 
+    def to_spec(self):
+        """ Export to the defining properties of the focus to a JSON-like
+        structure
+        """
+        output_spec = []
+        for focuspoint in self._focuspoints:
+            output_spec.append(focuspoint.to_dict())
+        return output_spec
+
+    @classmethod
+    def from_spec(cls, foci):
+        """ Create a new focus object from a JSON-like structure
+        """
+        f = cls()
+        for focuspoint in foci:
+            f.add_focus(**focuspoint)
+        return f
+
 
 class CGrid(object):
     """
@@ -971,6 +989,25 @@ class Gridgen(CGrid):
             y = numpy.ma.masked_where(numpy.isnan(y), y)
 
         super(Gridgen, self).__init__(x, y)
+
+    def to_spec(self):
+        """ Export the grid-defining parameters into a JSON-like structure """
+        output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
+                       'beta': self.beta, 'shape': self.shape,
+                       'focus': self.focus.to_spec() if self.focus else None,
+                       'ul_idx': self.ul_idx, 'proj': self.proj,
+                       'nnodes': self.nnodes, 'precision': self.precision,
+                       'nppe': self.nppe, 'newton': self.newton,
+                       'thin': self.thin, 'checksimplepoly': self.checksimplepoly}
+
+        return output_dict
+
+    @classmethod
+    def from_spec(cls, attributes):
+        """ Create a new grid from a JSON-like data structure """
+        focus_spec = attributes.pop('focus', None)
+        focus = Focus.from_spec(focus_spec) if focus_spec else None
+        return cls(focus=focus, **attributes)
 
 
 def rho_to_vert(xr, yr, pm, pn, ang):  # pragma: no cover

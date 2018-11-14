@@ -151,8 +151,17 @@ def test_full_focus_called(full_focus, xy):
     nptest.assert_array_almost_equal(yf, known_focused_y, decimal=3)
 
 
-def test_focuspoint_to_dict():
-    fp = pygridgen.grid._FocusPoint(0.25, 'x', 4, 0.5)
-    fp2 = pygridgen.grid._FocusPoint(**fp.to_dict())
-    assert fp.to_dict() == {'pos': 0.25, 'axis': 'x', 'factor': 4, 'extent': 0.5}
-    assert fp.to_dict() == fp2.to_dict()
+def test_focus_to_from_spec():
+    fpx = pygridgen.grid._FocusPoint(0.25, 'x', 4, 0.5)
+    fpy = pygridgen.grid._FocusPoint(0.33, 'y', 0.1, 0.2)
+    f1 = pygridgen.grid.Focus(fpx, fpy)
+
+    # Check that the spec dictionary returns desired results
+    assert f1.to_spec() == [
+        {'pos': 0.25, 'axis': 'x', 'factor': 4, 'extent': 0.5},
+        {'pos': 0.33, 'axis': 'y', 'factor': 0.1, 'extent': 0.2}
+    ]
+
+    f2 = pygridgen.grid.Focus.from_spec(f1.to_spec())
+
+    assert f1.to_spec() == f2.to_spec()
