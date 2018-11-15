@@ -992,8 +992,8 @@ class Gridgen(CGrid):
 
     def to_spec(self):
         """ Export the grid-defining parameters into a JSON-like structure """
-        output_dict = {'xbry': self.xbry, 'ybry': self.ybry,
-                       'beta': self.beta, 'shape': self.shape,
+        output_dict = {'xbry': self.xbry.tolist(), 'ybry': self.ybry.tolist(),
+                       'beta': self.beta.tolist(), 'shape': self.shape,
                        'focus': self.focus.to_spec() if self.focus else None,
                        'ul_idx': self.ul_idx, 'proj': self.proj,
                        'nnodes': self.nnodes, 'precision': self.precision,

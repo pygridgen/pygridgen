@@ -1,4 +1,7 @@
 from copy import deepcopy
+import tempfile
+import json
+import os
 
 import numpy
 
@@ -591,21 +594,46 @@ def test_mask_poylgon(grid_and_knowns):
         nptest.assert_array_almost_equal(grid.mask_rho, known_mask_rho)
 
 
-@pytest.mark.parametrize('use_focus', [True, False])
-def test_gridgen_to_from_spec(use_focus):
+@pytest.fixture
+def simple_grid():
     x = numpy.array([0.50, 2.00, 2.00, 3.50, 3.50, 2.00, 2.00, 0.50, 0.50])
     y = numpy.array([0.50, 0.50, 1.75, 1.75, 2.25, 2.25, 3.50, 3.50, 0.50])
     beta = numpy.array([1, 1, -1, 1, 1, -1, 1, 1, 0])
 
     focus = None
+    return pygridgen.Gridgen(x, y, beta, shape=(20, 10), focus=focus)
+
+
+@pytest.mark.parametrize('use_focus', [True, False])
+def test_gridgen_to_from_spec(simple_grid, use_focus):
+    x = numpy.array([0.50, 2.00, 2.00, 3.50, 3.50, 2.00, 2.00, 0.50, 0.50])
+    y = numpy.array([0.50, 0.50, 1.75, 1.75, 2.25, 2.25, 3.50, 3.50, 0.50])
+    beta = numpy.array([1, 1, -1, 1, 1, -1, 1, 1, 0])
+
     if use_focus:
         focus = pygridgen.Focus()
         focus.add_focus(0.50, 'y', factor=5, extent=0.25)
         focus.add_focus(0.50, 'x', factor=5, extent=0.25)
+        simple_grid.focus = focus
+        simple_grid.generate_grid()
 
-    grid1 = pygridgen.Gridgen(x, y, beta, shape=(20, 10), focus=focus)
-    grid2 = pygridgen.grid.Gridgen.from_spec((grid1.to_spec()))
+    grid2 = pygridgen.grid.Gridgen.from_spec((simple_grid.to_spec()))
 
     # testing - using almost equal due to rounding issues with floats
-    numpy.testing.assert_array_almost_equal(grid1.x, grid2.x)
-    numpy.testing.assert_array_almost_equal(grid1.y, grid2.y)
+    numpy.testing.assert_array_almost_equal(simple_grid.x, grid2.x)
+    numpy.testing.assert_array_almost_equal(simple_grid.y, grid2.y)
+
+
+def test_gridgen_spec_valid_json(simple_grid):
+    with tempfile.TemporaryDirectory() as folder:
+        with open(os.path.join(folder, 'test.json'), 'w') as gridjson:
+            json.dump(simple_grid.to_spec(), gridjson)
+
+        with open(os.path.join(folder, 'test.json'), 'r') as gridjson:
+            spec = json.load(gridjson)
+
+    grid2 = pygridgen.grid.Gridgen.from_spec(spec)
+
+    # testing - using almost equal due to rounding issues with floats
+    numpy.testing.assert_array_almost_equal(simple_grid.x, grid2.x)
+    numpy.testing.assert_array_almost_equal(simple_grid.y, grid2.y)
