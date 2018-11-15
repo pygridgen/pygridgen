@@ -2,6 +2,7 @@ from copy import deepcopy
 import tempfile
 import json
 import os
+import sys
 
 import numpy
 
@@ -14,6 +15,8 @@ import numpy.testing as nptest
 import pytest
 
 import pygridgen
+
+PY27 = sys.version_info.major == 2
 
 
 def boundary_planar():
@@ -624,6 +627,7 @@ def test_gridgen_to_from_spec(simple_grid, use_focus):
     numpy.testing.assert_array_almost_equal(simple_grid.y, grid2.y)
 
 
+@pytest.mark.skipif(PY27, reason='Test on Python >3.4 only')
 def test_gridgen_spec_valid_json(simple_grid):
     with tempfile.TemporaryDirectory() as folder:
         with open(os.path.join(folder, 'test.json'), 'w') as gridjson:
