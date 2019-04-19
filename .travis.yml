@@ -29,7 +29,7 @@ before_install:
   - conda install --yes nomkl
 
 install:
-  - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION nomkl gridgen numpy matplotlib pyproj pytest pytest-cov pytest-pep8 coverage docopt requests pyyaml
+  - conda create --yes --channel=conda-forge --name=test python=$TRAVIS_PYTHON_VERSION nomkl gridgen numpy matplotlib pyproj pytest pytest-pep8 coverage docopt requests pyyaml
   - source activate test
   - pip install coveralls
   - pip install -e .
