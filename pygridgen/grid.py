@@ -630,9 +630,10 @@ class CGrid_geo(CGrid):
         try:
             import pyproj
         except ImportError:
-            from mpl_toolkits.basemap import pyproj
-        else:
-            raise ImportError('pyproj or mpltoolkits-basemap required')
+            try:
+                from mpl_toolkits.basemap import pyproj
+            except ImportError:
+                raise ImportError('pyproj or mpltoolkits-basemap required')
 
         x, y = proj(lon, lat)
         self.lon_vert = lon
@@ -690,7 +691,7 @@ class CGrid_geo(CGrid):
         """Shorthand for lat_vert"""
         return self.lat_vert
 
-    def mask_polygon_geo(lonlat_verts, mask_value=0.0):
+    def mask_polygon_geo(self, lonlat_verts, mask_value=0.0):
         lon, lat = zip(*lonlat_verts)
         x, y = proj(lon, lat, inverse=True)
         self.mask_polygon(zip(x, y), mask_value)
