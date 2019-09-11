@@ -5,16 +5,16 @@ matrix:
     - python: 2.7
       env:
         - COVERAGE=false
-        - ARGS=""
-    - python: 3.4
-      env:
-        - COVERAGE=false
-        - ARGS=""
+       - ARGS=""
     - python: 3.5
       env:
         - COVERAGE=false
         - ARGS=""
     - python: 3.6
+      env:
+        - COVERAGE=false
+        - ARGS=""
+    - python: 3.7
       env:
         - COVERAGE=true
         - ARGS="--strict"
