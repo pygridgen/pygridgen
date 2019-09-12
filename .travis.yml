@@ -5,7 +5,7 @@ matrix:
     - python: 2.7
       env:
         - COVERAGE=false
-       - ARGS=""
+        - ARGS=""
     - python: 3.5
       env:
         - COVERAGE=false
@@ -15,6 +15,9 @@ matrix:
         - COVERAGE=false
         - ARGS=""
     - python: 3.7
+      language: python
+      sudo: required
+      dist: xenial
       env:
         - COVERAGE=true
         - ARGS="--strict"
