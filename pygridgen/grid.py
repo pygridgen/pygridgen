@@ -2,6 +2,7 @@
 import os
 import sys
 import ctypes
+import warnings
 
 import numpy
 from matplotlib.path import Path
@@ -549,11 +550,14 @@ class CGrid(object):
         angles = numpy.mean(_angles, axis=0) - (numpy.pi / 2)
         return angles
 
-    @numpy.deprecate(new_name='orthogonality')
     def calculate_orthogonality(self):
         """
         Should deprecate in favor of property ``orthogonality``
         """
+        warnings.warn(
+            "Use orthogonality instead of calculate_orthogonality.",
+            DeprecationWarning,
+            )
         return self.orthogonality
 
     def mask_polygon(self, polyverts, mask_value=False):
