@@ -12,20 +12,25 @@ jobs:
       max-parallel: 5
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+    env:
+        env-name: "test"
 
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.12
-      uses: actions/setup-python@v3
+      uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: "3.12"
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+        auto-activate-base: true
+        activate-environment: true
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        conda create --name=test python=${{ matrix.python-version }} gridgen numpy matplotlib pyproj pytest coverage docopt requests pyyaml --channel=conda-forge
+        conda create --name=${{ env.env-name }} python=${{ matrix.python-version }} gridgen numpy matplotlib pyproj pytest coverage docopt requests pyyaml --channel=conda-forge
     # - name: Lint with flake8
       # run: |
         # conda install flake8
@@ -33,6 +38,8 @@ jobs:
         # flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Test with pytest
       run: |
+        conda activate ${{ env.env-name }}
         coverage run --source pygridgen check_pygridgen.py
