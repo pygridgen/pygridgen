@@ -5,7 +5,7 @@ from matplotlib import style
 matplotlib.use('agg')
 style.use('classic')
 
-import pygridgen
+import pygridgen  # noqa: E402
 
 if '--strict' in sys.argv:
     sys.argv.remove('--strict')

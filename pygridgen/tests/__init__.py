@@ -1,8 +1,6 @@
 from pkg_resources import resource_filename
 from contextlib import contextmanager
-from functools import wraps
 
-import pygridgen
 from pygridgen.utils import requires
 
 try:

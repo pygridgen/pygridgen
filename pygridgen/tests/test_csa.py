@@ -9,7 +9,6 @@ import pytest
 import numpy.testing as nptest
 
 from pygridgen import utils
-from pygridgen.tests import raises
 
 from pygridgen import csa
 

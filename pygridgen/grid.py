@@ -1,4 +1,3 @@
-# encoding: utf-8
 import os
 import sys
 import ctypes
@@ -42,7 +41,7 @@ def _approximate_erf(x):
     return numpy.sign(x) * numpy.sqrt(1.0 - numpy.exp(guts))
 
 
-class _FocusPoint(object):
+class _FocusPoint:
     """
     Return a transformed, uniform grid, focused in the x- or
     y-direction.
@@ -114,11 +113,16 @@ class _FocusPoint(object):
             return self._do_focus(x), y
 
     def to_dict(self):
-        output_dict = {'pos': self.pos, 'axis': self.axis, 'factor': self.factor, 'extent': self.extent}
+        output_dict = {
+            'pos': self.pos,
+            'axis': self.axis,
+            'factor': self.factor,
+            'extent': self.extent
+        }
         return output_dict
 
 
-class Focus(object):
+class Focus:
     """
     Return a container for a sequence of Focus objects.
 
@@ -215,7 +219,7 @@ class Focus(object):
         return f
 
 
-class CGrid(object):
+class CGrid:
     """
     Curvilinear Arakawa C-Grid.
 
@@ -632,10 +636,10 @@ class CGrid_geo(CGrid):
 
     def __init__(self, lon, lat, proj, use_gcdist=True, ellipse='WGS84'):
         try:
-            import pyproj
+            import pyproj  # noqa
         except ImportError:
             try:
-                from mpl_toolkits.basemap import pyproj
+                from mpl_toolkits.basemap import pyproj  # noqa
             except ImportError:
                 raise ImportError('pyproj or mpltoolkits-basemap required')
 
@@ -649,7 +653,7 @@ class CGrid_geo(CGrid):
         self.proj = proj
         self.geod = pyproj.Geod(ellps=self.ellipse)
 
-        super(CGrid_geo, self).__init__(x, y)
+        super().__init__(x, y)
 
         self.lon_rho, self.lat_rho = self.proj(self.x_rho, self.y_rho,
                                                inverse=True)
@@ -993,7 +997,7 @@ class Gridgen(CGrid):
             x = numpy.ma.masked_where(numpy.isnan(x), x)
             y = numpy.ma.masked_where(numpy.isnan(y), y)
 
-        super(Gridgen, self).__init__(x, y)
+        super().__init__(x, y)
 
     def to_spec(self):
         """ Export the grid-defining parameters into a JSON-like structure """
