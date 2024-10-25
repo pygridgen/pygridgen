@@ -25,7 +25,7 @@ doclines = __doc__.split("\n")
 
 setup(
     name="pygridgen",
-    version='0.2.dev',
+    version='0.3.dev',
     description=doclines[0],
     long_description="\n".join(doclines),
     author="Robert Hetland",
@@ -33,9 +33,8 @@ setup(
     url="http://github.com/hetland/pygridgen",
     packages=find_packages(exclude=[]),
     license="MIT",
-    platforms="Python 2.7, 3.4, 3.5 and later.",
+    platforms="Python 3.9 and later.",
     ext_package='pygridgen',
     classifiers=classifiers.split("\n"),
     install_requires=['numpy', 'matplotlib'],
 )
-
