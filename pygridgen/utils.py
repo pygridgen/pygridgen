@@ -9,7 +9,7 @@ def requires(module, modulename):
         def inner_wrapper(*args, **kwargs):
             if module is None:
                 raise RuntimeError(
-                    "{} required for `{}`".format(modulename, function.__name__)
+                    f"{modulename} required for `{function.__name__}`"
                 )
             else:
                 return function(*args, **kwargs)

@@ -1,8 +1,6 @@
 from pkg_resources import resource_filename
 from contextlib import contextmanager
-from functools import wraps
 
-import pygridgen
 from pygridgen.utils import requires
 
 try:
@@ -35,6 +33,6 @@ def test(*args):
 
 @requires(pytest, 'pytest')
 def teststrict(*args):
-    options = ['--pep8', '--doctest-modules'] + list(args)
+    options = ['--doctest-modules'] + list(args)
     options = list(set(options))
     return test(*options)

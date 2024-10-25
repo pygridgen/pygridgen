@@ -62,7 +62,7 @@ def plot_grid(grid, data_ax, cell_ax, leg_loc='lower left'):
 
 
 def read_boundary(example):
-    df = pandas.read_table("gg_examples/xy.{}".format(example), sep='\s+').fillna(0)
+    df = pandas.read_table(f"gg_examples/xy.{example}", sep='\s+').fillna(0)
     x, y, beta = df['x'].values, df['y'].values, df['b'].values
     ul_idx = numpy.nonzero(df['ul'])[0][0] + 1
     return x, y, beta, ul_idx

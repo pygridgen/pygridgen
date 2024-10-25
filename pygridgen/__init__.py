@@ -1,4 +1,3 @@
-# encoding: utf-8
 """
 PYGRIDGEN is a tool for building curvilinear grids.
 
@@ -13,10 +12,10 @@ Released under an MIT license.
 """
 
 
-from .grid import *
-from . import csa
-from . import utils
-from .tests import test, teststrict
+from .grid import *  # noqa: F403
+from . import csa  # noqa: F401
+from . import utils  # noqa: F401
+from .tests import test, teststrict  # noqa: F401
 
 __authors__ = [
     'Robert Hetland <hetland@tamu.edu>',
@@ -24,4 +23,4 @@ __authors__ = [
     'Paul Hobson <phobson@geosyntec.com>'
 ]
 
-__version__ = '0.3.dev'
+__version__ = '0.3.0'

@@ -1,15 +1,11 @@
-import os
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 from copy import deepcopy
 
-import numpy
+import numpy as np
 from matplotlib import pyplot
 from matplotlib.artist import Artist
-from matplotlib.patches import Polygon, CirclePolygon
+from matplotlib.patches import Polygon
 from matplotlib.lines import Line2D
 
 from .grid import Gridgen
@@ -33,18 +29,18 @@ def dist_point_to_segment(p, s0, s1):
 
     c1 = np.dot(w, v)
     if c1 <= 0:
-        return dist(p, s0)
+        return np.hypot(p, s0)
 
     c2 = np.dot(v, v)
     if c2 <= c1:
-        return numpy.hypot(p, s1)
+        return np.hypot(p, s1)
 
     b = c1 / c2
     pb = s0 + b * v
-    return numpy.hypot(p, pb)
+    return np.hypot(p, pb)
 
 
-class BoundaryInteractor(object):  # pragma: no cover
+class BoundaryInteractor:  # pragma: no cover
     """
     Interactive grid creation
 
@@ -148,21 +144,21 @@ class BoundaryInteractor(object):  # pragma: no cover
 
             # display coords
             xt, yt = self._poly.get_transform().numerix_x_y(x, y)
-            d = numpy.sqrt((xt - event.x)**2 + (yt - event.y)**2)
-            indseq = numpy.nonzero(numpy.equal(d, numpy.amin(d)))
+            d = np.sqrt((xt - event.x)**2 + (yt - event.y)**2)
+            indseq = np.nonzero(np.equal(d, np.amin(d)))
             ind = indseq[0]
 
             if d[ind] >= self._epsilon:
                 ind = None
 
             return ind
-        except:
+        except Exception:
             # display coords
-            xy = numpy.asarray(self._poly.xy)
+            xy = np.asarray(self._poly.xy)
             xyt = self._poly.get_transform().transform(xy)
             xt, yt = xyt[:, 0], xyt[:, 1]
-            d = numpy.sqrt((xt - event.x)**2 + (yt - event.y)**2)
-            indseq = numpy.nonzero(numpy.equal(d, numpy.amin(d)))[0]
+            d = np.sqrt((xt - event.x)**2 + (yt - event.y)**2)
+            indseq = np.nonzero(np.equal(d, np.amin(d)))[0]
             ind = indseq[0]
 
             if d[ind] >= self._epsilon:
@@ -232,7 +228,7 @@ class BoundaryInteractor(object):  # pragma: no cover
                 s1 = xys[i + 1]
                 d = dist_point_to_segment(p, s0, s1)
                 if d <= self._epsilon:
-                    self._poly.xy = numpy.array(
+                    self._poly.xy = np.array(
                         list(self._poly.xy[:i + 1]) +
                         [(event.xdata, event.ydata)] +
                         list(self._poly.xy[i + 1:]))
@@ -243,7 +239,7 @@ class BoundaryInteractor(object):  # pragma: no cover
             s1 = xys[0]
             d = dist_point_to_segment(p, s0, s1)
             if d <= self._epsilon:
-                self._poly.xy = numpy.array(
+                self._poly.xy = np.array(
                     list(self._poly.xy) +
                     [(event.xdata, event.ydata)])
                 self._line.set_data(zip(*self._poly.xy))
@@ -316,7 +312,7 @@ class BoundaryInteractor(object):  # pragma: no cover
                  **gridgen_options):
 
         if isinstance(x, str):
-            bry_dict = numpy.load(x)
+            bry_dict = np.load(x)
             x = bry_dict['x']
             y = bry_dict['y']
             beta = bry_dict['beta']
@@ -375,7 +371,7 @@ class BoundaryInteractor(object):  # pragma: no cover
         self._ax.add_artist(self._sline)
 
         # get the canvas and connect the callback events
-        cid = self._poly.add_callback(self._poly_changed)
+        cid = self._poly.add_callback(self._poly_changed)   # noqa
         self._ind = None  # the active vert
 
         self._canvas.mpl_connect('draw_event', self._draw_callback)
@@ -388,13 +384,12 @@ class BoundaryInteractor(object):  # pragma: no cover
                                  self._motion_notify_callback)
 
     def save_bry(self, bry_file='bry.pickle'):
-        f = open(bry_file, 'wb')
-        bry_dict = {'x': self.x, 'y': self.y, 'beta': self.beta}
-        pickle.dump(bry_dict, f, protocol=-1)
-        f.close()
+        with open(bry_file, 'wb') as f:
+            bry_dict = {'x': self.x, 'y': self.y, 'beta': self.beta}
+            pickle.dump(bry_dict, f, protocol=-1)
 
     def load_bry(self, bry_file='bry.pickle'):
-        bry_dict = numpy.load(bry_file)
+        bry_dict = np.load(bry_file)
         x = bry_dict['x']
         y = bry_dict['y']
         self._line.set_data(x, y)
@@ -406,9 +401,8 @@ class BoundaryInteractor(object):  # pragma: no cover
             self._canvas.draw()
 
     def save_grid(self, grid_file='grid.pickle'):
-        f = open(grid_file, 'wb')
-        pickle.dump(self.grd, f, protocol=-1)
-        f.close()
+        with open(grid_file, 'wb') as f:
+            pickle.dump(self.grd, f, protocol=-1)
 
     def _get_verts(self):
         return zip(self.x, self.y)
@@ -426,24 +420,24 @@ class BoundaryInteractor(object):  # pragma: no cover
     y = property(get_ydata)
 
 
-class edit_mask_mesh(object):  # pragma: no cover
+class edit_mask_mesh:  # pragma: no cover
 
     def _on_key(self, event):
         if event.key == 'e':
             self._clicking = not self._clicking
-            pyplot.title('Editing %s -- click "e" to toggle' % self._clicking)
+            pyplot.title(f'Editing {self._clicking} -- click "e" to toggle')
             pyplot.draw()
 
     def _on_click(self, event):
         x, y = event.xdata, event.ydata
         if event.button == 1 and event.inaxes is not None and self._clicking:
             d = (x - self._xc)**2 + (y - self._yc)**2
-            if isinstance(self.xv, numpy.ma.MaskedArray):
-                idx = numpy.argwhere(d[~self._xc.mask] == d.min())
+            if isinstance(self.xv, np.ma.MaskedArray):
+                idx = np.argwhere(d[~self._xc.mask] == d.min())
             else:
-                idx = numpy.argwhere(d.flatten() == d.min())
+                idx = np.argwhere(d.flatten() == d.min())
             self._mask[idx] = float(not self._mask[idx])
-            i, j = numpy.argwhere(d == d.min())[0]
+            i, j = np.argwhere(d == d.min())[0]
             self.mask[i, j] = float(not self.mask[i, j])
             self._pc.set_array(self._mask)
             self._pc.changed()
@@ -471,7 +465,7 @@ class edit_mask_mesh(object):  # pragma: no cover
         self._xc = 0.25 * (xv[1:, 1:] + xv[1:, :-1] + xv[:-1, 1:] + xv[:-1, :-1])
         self._yc = 0.25 * (yv[1:, 1:] + yv[1:, :-1] + yv[:-1, 1:] + yv[:-1, :-1])
 
-        if isinstance(self.xv, numpy.ma.MaskedArray):
+        if isinstance(self.xv, np.ma.MaskedArray):
             self._mask = mask[~self._xc.mask]
         else:
             self._mask = mask.flatten()
@@ -479,5 +473,5 @@ class edit_mask_mesh(object):  # pragma: no cover
         pyplot.connect('button_press_event', self._on_click)
         pyplot.connect('key_press_event', self._on_key)
         self._clicking = False
-        pyplot.title('Editing %s -- click "e" to toggle' % self._clicking)
+        pyplot.title(f'Editing {self._clicking} -- click "e" to toggle')
         pyplot.draw()

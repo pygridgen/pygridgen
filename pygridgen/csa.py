@@ -1,13 +1,12 @@
 import sys
 import os
 import ctypes
-from pkg_resources import resource_filename
 
 import numpy
 from matplotlib import pyplot
 
 
-class CSA(object):
+class CSA:
     """
     Cubic spline approximation for re-gridding 2D data sets
 

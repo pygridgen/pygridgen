@@ -38,7 +38,5 @@ jobs:
         cache-environment: true
         post-cleanup: 'all'
     - name: Run Python tests
-      run: python check_pygridgen.py --verbose --durations=10
+      run: python check_pygridgen.py --verbose --durations=10 --strict
       shell: bash -el {0}
-
-

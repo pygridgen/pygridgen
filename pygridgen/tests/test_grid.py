@@ -1,4 +1,3 @@
-from copy import deepcopy
 import tempfile
 import json
 import os
@@ -609,10 +608,6 @@ def simple_grid():
 
 @pytest.mark.parametrize('use_focus', [True, False])
 def test_gridgen_to_from_spec(simple_grid, use_focus):
-    x = numpy.array([0.50, 2.00, 2.00, 3.50, 3.50, 2.00, 2.00, 0.50, 0.50])
-    y = numpy.array([0.50, 0.50, 1.75, 1.75, 2.25, 2.25, 3.50, 3.50, 0.50])
-    beta = numpy.array([1, 1, -1, 1, 1, -1, 1, 1, 0])
-
     if use_focus:
         focus = pygridgen.Focus()
         focus.add_focus(0.50, 'y', factor=5, extent=0.25)
@@ -620,7 +615,7 @@ def test_gridgen_to_from_spec(simple_grid, use_focus):
         simple_grid.focus = focus
         simple_grid.generate_grid()
 
-    grid2 = pygridgen.grid.Gridgen.from_spec((simple_grid.to_spec()))
+    grid2 = pygridgen.grid.Gridgen.from_spec(simple_grid.to_spec())
 
     # testing - using almost equal due to rounding issues with floats
     numpy.testing.assert_array_almost_equal(simple_grid.x, grid2.x)
@@ -633,7 +628,7 @@ def test_gridgen_spec_valid_json(simple_grid):
         with open(os.path.join(folder, 'test.json'), 'w') as gridjson:
             json.dump(simple_grid.to_spec(), gridjson)
 
-        with open(os.path.join(folder, 'test.json'), 'r') as gridjson:
+        with open(os.path.join(folder, 'test.json')) as gridjson:
             spec = json.load(gridjson)
 
     grid2 = pygridgen.grid.Gridgen.from_spec(spec)

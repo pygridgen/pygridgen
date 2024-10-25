@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # pygridgen documentation build configuration file, created by
 # sphinx-quickstart on Sat Jan 16 18:37:00 2016.
@@ -13,10 +12,6 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
-import shlex
-import sphinx
 
 numpydoc_show_class_members = False
 autodoc_member_order = 'bysource'
