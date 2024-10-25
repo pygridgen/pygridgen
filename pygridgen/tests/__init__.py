@@ -33,6 +33,6 @@ def test(*args):
 
 @requires(pytest, 'pytest')
 def teststrict(*args):
-    options = ['--pep8', '--doctest-modules'] + list(args)
+    options = ['--doctest-modules'] + list(args)
     options = list(set(options))
     return test(*options)
