@@ -1,12 +1,8 @@
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 from copy import deepcopy
 
 import numpy as np
-from numpy import dist
 from matplotlib import pyplot
 from matplotlib.artist import Artist
 from matplotlib.patches import Polygon
@@ -33,7 +29,7 @@ def dist_point_to_segment(p, s0, s1):
 
     c1 = np.dot(w, v)
     if c1 <= 0:
-        return dist(p, s0)
+        return np.hypot(p, s0)
 
     c2 = np.dot(v, v)
     if c2 <= c1:
