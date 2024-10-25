@@ -24,4 +24,4 @@ __authors__ = [
     'Paul Hobson <phobson@geosyntec.com>'
 ]
 
-__version__ = '0.2.dev'
+__version__ = '0.3.dev'
