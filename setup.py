@@ -25,7 +25,7 @@ doclines = __doc__.split("\n")
 
 setup(
     name="pygridgen",
-    version='0.3.dev',
+    version='0.3.0',
     description=doclines[0],
     long_description="\n".join(doclines),
     author="Robert Hetland",
